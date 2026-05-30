@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Plus, Minus, Star, MoreVertical, User as UserIcon, Trash2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useAppStore } from "@/store/useAppStore";

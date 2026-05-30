@@ -1,4 +1,4 @@
-﻿﻿# AGENTS.md — VIP用户管理系统
+﻿# AGENTS.md — VIP用户管理系统
 
 ## 项目概述
 

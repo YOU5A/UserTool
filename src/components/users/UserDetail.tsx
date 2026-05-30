@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Plus, Minus, Star, User as UserIcon, ChevronDown, TrendingUp, TrendingDown, Calendar, Hash, Activity } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";

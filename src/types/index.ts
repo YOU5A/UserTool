@@ -1,4 +1,4 @@
-﻿export interface HistoryRecord {
+export interface HistoryRecord {
   id: string;
   type: "add" | "subtract";
   amount: number;

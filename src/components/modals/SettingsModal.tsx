@@ -1,4 +1,4 @@
-﻿import { useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Sun, Moon, Download, Upload, DollarSign, Database, Palette, AlertTriangle, Trash2 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";

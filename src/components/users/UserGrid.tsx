@@ -1,4 +1,4 @@
-﻿import { useMemo, useTransition, useRef, useState, useEffect, useCallback } from "react";
+import { useMemo, useTransition, useRef, useState, useEffect, useCallback } from "react";
 import { ChevronLeft, ChevronRight, Filter } from "lucide-react";
 import { UserCard } from "./UserCard";
 import { Button } from "@/components/ui/Button";

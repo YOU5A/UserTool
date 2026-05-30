@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { createVIPManager, type VIPManagerInstance } from "@/lib/vip-manager";
 import { useAppStore } from "@/store/useAppStore";
 

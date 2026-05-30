@@ -1,4 +1,4 @@
-﻿import { ReactNode, useState } from "react";
+import { ReactNode, useState } from "react";
 import { Menu, X, Users, Star, BarChart2, Trash2, FileText, Settings, Sun, Moon } from "lucide-react";
 import { Navbar } from "./Navbar";
 import { Sidebar } from "./Sidebar";

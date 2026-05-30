@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 
 interface ViewportInfo {
   /** 移动端（宽度 < 768px） */

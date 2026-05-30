@@ -1,4 +1,4 @@
-﻿import { RefreshCw, Settings, Users, Star, BarChart2, Trash2, FileText } from "lucide-react";
+import { RefreshCw, Settings, Users, Star, BarChart2, Trash2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useAppStore } from "@/store/useAppStore";
 import { useVIPManager } from "@/hooks/useVIPManager";
