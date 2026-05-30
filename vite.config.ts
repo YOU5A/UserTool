@@ -4,7 +4,7 @@ import tailwindcss from "@tailwindcss/vite";
 import { fileURLToPath, URL } from "node:url";
 
 export default defineConfig({
-  base: '/vip-manager/',
+  base: '/UserTool/',
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
@@ -12,4 +12,5 @@ export default defineConfig({
     },
   },
 });
+
 
