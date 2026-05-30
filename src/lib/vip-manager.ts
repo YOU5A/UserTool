@@ -309,6 +309,8 @@ export function createVIPManager(): VIPManagerInstance {
     const remoteUserIds = new Set<string>();
 
     for (const row of rows) {
+      // Skip purged users ? do not resurrect already purged data from cloud
+      if (row.data && row.data.purged) continue;
       remoteUserIds.add(row.user_id);
       const remoteUser = row.data;
       const remoteTs = new Date(row.updated_at).getTime();
@@ -587,9 +589,9 @@ export function createVIPManager(): VIPManagerInstance {
     const all = getAllUsers();
     switch (filter) {
       case "pinned": return all.filter(u => u.pinned);
-      case "high": return all.filter(u => u.amount > 10000);
-      case "medium": return all.filter(u => u.amount > 1000 && u.amount <= 10000);
-      case "low": return all.filter(u => u.amount <= 1000);
+      case "high": return all.filter(u => u.amount > 300);
+      case "medium": return all.filter(u => u.amount >= 100 && u.amount <= 300);
+      case "low": return all.filter(u => u.amount < 100);
       default: return all;
     }
   }

@@ -1,20 +1,37 @@
-import { useState } from "react";
-import { Search, PlusCircle, LogOut, LogIn, X, UserPlus, WifiOff } from "lucide-react";
+﻿import { useState } from "react";
+import { Search, PlusCircle, LogOut, LogIn, X, UserPlus, WifiOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 
 interface NavbarProps {
   searchQuery: string;
   onSearchChange: (q: string) => void;
   onAddUser: () => void;
+  onRefresh?: () => void;
   isLoggedIn?: boolean;
   userEmail?: string;
   onLogout?: () => void;
+  isConfigured?: boolean;
+  onConfigure?: (url: string, anonKey: string) => boolean;
+  onClearConfig?: () => void;
+  onSignIn?: (email: string, password: string) => Promise<{ error: string | null }>;
+  onSignUp?: (email: string, password: string) => Promise<{ error: string | null }>;
 }
 
-export function Navbar({ searchQuery, onSearchChange, onAddUser, isLoggedIn, userEmail, onLogout }: NavbarProps) {
-  const auth = useSupabaseAuth();
+export function Navbar({
+  searchQuery,
+  onSearchChange,
+  onAddUser,
+  onRefresh,
+  isLoggedIn,
+  userEmail,
+  onLogout,
+  isConfigured = false,
+  onConfigure,
+  onClearConfig,
+  onSignIn,
+  onSignUp,
+}: NavbarProps) {
   const [showLogin, setShowLogin] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,11 +39,12 @@ export function Navbar({ searchQuery, onSearchChange, onAddUser, isLoggedIn, use
   const [anonKey, setAnonKey] = useState(localStorage.getItem("sb_anon_key") || "");
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const handleSaveConfig = () => {
     setMsg("");
     if (!url || !anonKey) { setMsg("请填写 Project URL 和 Anon Key"); return; }
-    auth.configureAndSave(url, anonKey);
+    if (onConfigure) { onConfigure(url, anonKey); }
     setMsg("配置已保存");
   };
 
@@ -34,9 +52,9 @@ export function Navbar({ searchQuery, onSearchChange, onAddUser, isLoggedIn, use
     setMsg("");
     if (!email || !password) { setMsg("请填写邮箱和密码"); return; }
     setLoading(true);
-    const { error } = await auth.signIn(email, password);
+    const result = onSignIn ? await onSignIn(email, password) : { error: "登录功能不可用" };
     setLoading(false);
-    if (error) setMsg(error);
+    if (result.error) setMsg(result.error);
     else setShowLogin(false);
   };
 
@@ -44,9 +62,9 @@ export function Navbar({ searchQuery, onSearchChange, onAddUser, isLoggedIn, use
     setMsg("");
     if (!email || !password) { setMsg("请填写邮箱和密码"); return; }
     setLoading(true);
-    const { error } = await auth.signUp(email, password);
+    const result = onSignUp ? await onSignUp(email, password) : { error: "注册功能不可用" };
     setLoading(false);
-    if (error) setMsg(error);
+    if (result.error) setMsg(result.error);
     else setMsg("注册成功！请到邮箱完成验证后登录。");
   };
 
@@ -54,10 +72,14 @@ export function Navbar({ searchQuery, onSearchChange, onAddUser, isLoggedIn, use
     <nav className="bg-white dark:bg-dark shadow-sm z-20 border-b border-gray-200 dark:border-gray-700">
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14 gap-3">
-          {/* Left: Brand */}
-          <span className="text-base sm:text-lg font-bold whitespace-nowrap shrink-0">
-            💵 <span className="bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent">VIP Manager</span>
-          </span>
+          {/* Left: Brand - click to refresh */}
+          <button
+            onClick={onRefresh}
+            className="text-base sm:text-lg font-bold whitespace-nowrap shrink-0 hover:opacity-80 transition-opacity cursor-pointer"
+            title="刷新列表"
+          >
+            👤 <span className="bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent">UserTools</span>
+          </button>
 
           {/* Center: Search + Add */}
           <div className="flex items-center gap-2 sm:gap-3 flex-1 justify-center">
@@ -82,11 +104,16 @@ export function Navbar({ searchQuery, onSearchChange, onAddUser, isLoggedIn, use
               <>
                 <span className="text-xs text-gray-500 dark:text-gray-400 hidden lg:inline truncate max-w-[120px]">{userEmail}</span>
                 <button
-                  onClick={onLogout}
-                  className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  onClick={async () => {
+                    setLoggingOut(true);
+                    try { await onLogout?.(); }
+                    finally { setLoggingOut(false); }
+                  }}
+                  disabled={loggingOut}
+                  className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors disabled:opacity-50"
                   title="退出登录"
                 >
-                  <LogOut size={16} />
+                  {loggingOut ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
                 </button>
               </>
             ) : (
@@ -95,7 +122,7 @@ export function Navbar({ searchQuery, onSearchChange, onAddUser, isLoggedIn, use
                   variant="outline"
                   size="sm"
                   onClick={() => setShowLogin(!showLogin)}
-                  className="gap-1 hidden md:inline-flex"
+                  className="gap-1 inline-flex"
                 >
                   <LogIn size={14} />
                   <span>登录</span>
@@ -118,8 +145,8 @@ export function Navbar({ searchQuery, onSearchChange, onAddUser, isLoggedIn, use
                       <div className="p-4 rounded-xl bg-gray-50 dark:bg-gray-800/40 border border-gray-200 dark:border-gray-700 mb-4">
                         <div className="flex items-center justify-between mb-2">
                           <span className="text-sm font-semibold text-gray-900 dark:text-gray-100">Supabase 项目配置</span>
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${auth.isConfigured ? "bg-success/10 text-success" : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200"}`}>
-                            {auth.isConfigured ? "已配置" : "未配置"}
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${isConfigured ? "bg-success/10 text-success" : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-200"}`}>
+                            {isConfigured ? "已配置" : "未配置"}
                           </span>
                         </div>
                         <label className="block text-xs text-gray-600 dark:text-gray-300 mb-1">Project URL</label>
@@ -128,7 +155,7 @@ export function Navbar({ searchQuery, onSearchChange, onAddUser, isLoggedIn, use
                         <Input value={anonKey} onChange={(e) => setAnonKey(e.target.value)} placeholder="eyJhbGciOiJIUzI1NiIs..." className="mb-3" />
                         <div className="flex gap-2">
                           <Button onClick={handleSaveConfig} className="flex-1">保存配置</Button>
-                          <Button variant="outline" onClick={() => { auth.clearConfig(); setUrl(""); setAnonKey(""); setMsg("配置已清除"); }} className="flex-1">清除</Button>
+                          <Button variant="outline" onClick={() => { if (onClearConfig) { onClearConfig(); } setUrl(""); setAnonKey(""); setMsg("配置已清除"); }} className="flex-1">清除</Button>
                         </div>
                       </div>
 
@@ -136,7 +163,7 @@ export function Navbar({ searchQuery, onSearchChange, onAddUser, isLoggedIn, use
                       <div className="space-y-3">
                         <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
                         <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="········" />
-                        {msg && <p className={`text-sm ${msg.includes("失败") || msg.includes("错误") || msg.includes("Invalid") || msg.includes("请填写") ? "text-danger" : "text-success"}`}>{msg}</p>}
+                        {msg && <p className={`text-sm ${msg.includes("失败") || msg.includes("错误") || msg.includes("Invalid") || msg.includes("请填写") || msg.includes("不可用") ? "text-danger" : "text-success"}`}>{msg}</p>}
                         <div className="flex gap-2">
                           <Button onClick={handleSignIn} disabled={loading} className="flex-1 gap-1">
                             <LogIn size={16} /> 登录

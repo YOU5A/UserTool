@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+﻿import { ReactNode, useState } from "react";
 import { Menu, X, Users, Star, BarChart2, Trash2, FileText, Settings, Sun, Moon } from "lucide-react";
 import { Navbar } from "./Navbar";
 import { Sidebar } from "./Sidebar";
@@ -15,6 +15,11 @@ interface MainLayoutProps {
   isLoggedIn?: boolean;
   userEmail?: string;
   onLogout?: () => void;
+  isConfigured?: boolean;
+  onConfigure?: (url: string, anonKey: string) => boolean;
+  onClearConfig?: () => void;
+  onSignIn?: (email: string, password: string) => Promise<{ error: string | null }>;
+  onSignUp?: (email: string, password: string) => Promise<{ error: string | null }>;
   children: ReactNode;
 }
 
@@ -28,7 +33,8 @@ const mobileLinks = [
 
 export function MainLayout({
   searchQuery, onSearchChange, onAddUser, onRefresh, onSettings,
-  onUserClick, onClearRecent, isLoggedIn, userEmail, onLogout, children,
+  onUserClick, onClearRecent, isLoggedIn, userEmail, onLogout,
+  isConfigured, onConfigure, onClearConfig, onSignIn, onSignUp, children,
 }: MainLayoutProps) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { activeView, setActiveView, theme, setTheme } = useAppStore();
@@ -44,9 +50,15 @@ export function MainLayout({
         searchQuery={searchQuery}
         onSearchChange={onSearchChange}
         onAddUser={onAddUser}
+        onRefresh={onRefresh}
         isLoggedIn={isLoggedIn}
         userEmail={userEmail}
         onLogout={onLogout}
+        isConfigured={isConfigured}
+        onConfigure={onConfigure}
+        onClearConfig={onClearConfig}
+        onSignIn={onSignIn}
+        onSignUp={onSignUp}
       />
       <div className="flex flex-1 overflow-hidden">
         {/* Desktop Sidebar */}

@@ -15,7 +15,7 @@ export function Select({ value, onValueChange, options, placeholder }: {
         <ChevronDown size={16} className="text-gray-400" />
       </SelectPrimitive.Trigger>
       <SelectPrimitive.Portal>
-        <SelectPrimitive.Content className="z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto">
+        <SelectPrimitive.Content align="start" className="z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg mt-1 max-h-60 overflow-y-auto min-w-[var(--radix-select-trigger-width)]">
           <SelectPrimitive.Viewport>
             {options.map(opt => (
               <SelectPrimitive.Item key={opt.value} value={opt.value}

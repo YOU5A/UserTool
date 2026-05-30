@@ -1,4 +1,4 @@
-import { useEffect, useCallback, lazy, Suspense, useRef } from "react";
+﻿import { useEffect, useCallback, lazy, Suspense, useRef } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { UserGrid } from "@/components/users/UserGrid";
 import { UserDetail } from "@/components/users/UserDetail";
@@ -33,7 +33,6 @@ export default function App() {
   useEffect(() => {
     if (auth.loading) return; // 等待 auth 初始化完成
     if (initDone.current) return; // 只初始化一次
-
     (async () => {
       try {
         if (auth.isLoggedIn && auth.user) {
@@ -84,7 +83,14 @@ export default function App() {
 
   const handleRefresh = useCallback(async () => {
     if (auth.isLoggedIn) {
-      await auth.pullFromCloud();
+      try {
+        await auth.pullFromCloud();
+        console.log("[App] pullFromCloud completed successfully");
+      } catch (e) {
+        console.error("[App] pullFromCloud failed:", e);
+      }
+    } else {
+      console.log("[App] refresh skipped: not logged in");
     }
     rerender();
   }, [auth.isLoggedIn, auth.pullFromCloud, rerender]);
@@ -120,6 +126,11 @@ export default function App() {
         isLoggedIn={auth.isLoggedIn}
         userEmail={auth.user?.email}
         onLogout={handleLogout}
+        isConfigured={auth.isConfigured}
+        onConfigure={auth.configureAndSave}
+        onClearConfig={auth.clearConfig}
+        onSignIn={auth.signIn}
+        onSignUp={auth.signUp}
       >
         <UserGrid />
       </MainLayout>

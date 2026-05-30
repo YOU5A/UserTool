@@ -125,9 +125,9 @@ export function UserGrid() {
   const filterOptions = [
     { value: "all", label: "全部用户" },
     { value: "pinned", label: "置顶用户" },
-    { value: "high", label: "高余额 (>10k)" },
-    { value: "medium", label: "中等余额 (1k-10k)" },
-    { value: "low", label: "低余额 (≤1k)" },
+    { value: "high", label: "高余额 (>300)" },
+    { value: "medium", label: "中等余额 (100-300)" },
+    { value: "low", label: "低余额 (<100)" },
   ];
 
   return (
@@ -137,7 +137,7 @@ export function UserGrid() {
         <p className="text-gray-500 dark:text-gray-400 text-sm">
           共找到 {filteredUsers.length} 个 VIP 用户
         </p>
-        <div className="w-40">
+        <div className="w-44">
           <Select
             value={store.activeFilter}
             onValueChange={(v) => startTransition(() => store.setActiveFilter(v))}
