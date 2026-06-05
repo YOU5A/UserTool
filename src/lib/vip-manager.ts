@@ -609,7 +609,9 @@ function deleteUser(userId: string): boolean {
     const q = query.toLowerCase();
     return getAllUsers().filter(u =>
       (u.phone && u.phone.includes(q)) ||
-      (u.tail && u.tail.includes(q))
+      (u.tail && u.tail.includes(q)) ||
+      (u.remark && u.remark.toLowerCase().includes(q)) ||
+      (u.cardNo && u.cardNo.includes(q))
     );
   }
 
@@ -792,6 +794,8 @@ function deleteUser(userId: string): boolean {
       for (const id of incomingIds) {
         const u = incomingUsers[id];
         if (!u || typeof u !== "object") continue;
+        if (u.cardNo === undefined || u.cardNo === null) u.cardNo = "";
+        if (u.remark === undefined || u.remark === null) u.remark = "";
         state.users[id] = { ...u, __ts: Date.now() };
         dirtyUpserts.add(id);
         result.usersImported++;
