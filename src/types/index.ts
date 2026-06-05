@@ -1,4 +1,4 @@
-export interface HistoryRecord {
+﻿export interface HistoryRecord {
   id: string;
   type: "add" | "subtract";
   amount: number;
@@ -23,17 +23,9 @@ export interface User {
 }
 
 export interface SyncState {
-  lastOpTs: number;
   lastUpdatedAt: string | null;
 }
 
-export interface OutboxOp {
-  key: string;
-  type: "upsert" | "delete";
-  user_id: string;
-  ts: number;
-  payload?: User;
-}
 
 export interface VipMetaRow {
   owner_id: string;

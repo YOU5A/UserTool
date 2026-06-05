@@ -31,12 +31,12 @@ export default function App() {
 
   // 核心初始化：等 auth 状态确认后再决定用哪个数据库
   useEffect(() => {
-    if (auth.loading) return; // 等待 auth 初始化完成
-    if (initDone.current) return; // 只初始化一次
+    if (auth.loading) return;
+    if (initDone.current) return;
     (async () => {
       try {
         if (auth.isLoggedIn && auth.user) {
-          // 已登录：auth hook 已调用 init(userId)，只需刷新
+          // 已登录：auth hook 已处理 init + pull，只需刷新
           rerender();
         } else {
           // 未登录或未配置：使用离线数据库
@@ -88,15 +88,13 @@ export default function App() {
     if (auth.isLoggedIn) {
       try {
         await auth.pullFromCloud();
-        console.log("[App] pullFromCloud completed successfully");
       } catch (e) {
         console.error("[App] pullFromCloud failed:", e);
       }
-    } else {
-      console.log("[App] refresh skipped: not logged in");
     }
     rerender();
   }, [auth.isLoggedIn, auth.pullFromCloud, rerender]);
+
   const handleAddUser = useCallback(() => store.openModal("addUser"), []);
   const handleSettings = useCallback(() => store.openModal("settings"), []);
   const handleUserClick = useCallback((userId: string) => {
@@ -111,11 +109,10 @@ export default function App() {
     rerender();
   }, [mgr, rerender]);
   const handleLogout = useCallback(async () => {
+    // signOut 内部已处理 push + init("local_offline")
     await auth.signOut();
-    // 登出后用离线数据库
-    await mgr.init("local_offline");
     rerender();
-  }, [auth, mgr, rerender]);
+  }, [auth, rerender]);
 
   return (
     <ErrorBoundary>

@@ -1,5 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { User } from "@/types";
+import type { CloudDataRow } from "./vip-manager";
+import { cookieStorage } from "./auth-storage";
 
 let supabaseClient: SupabaseClient | null = null;
 
@@ -28,7 +30,7 @@ export function initSupabaseClient(): SupabaseClient | null {
   const config = getSupabaseConfig();
   if (!config) return null;
   supabaseClient = createClient(config.url, config.anonKey, {
-    auth: { persistSession: true, autoRefreshToken: true },
+    auth: { persistSession: true, autoRefreshToken: true, storage: cookieStorage },
   });
   return supabaseClient;
 }
@@ -44,21 +46,15 @@ export function resetSupabaseClient(): void {
   supabaseClient = null;
 }
 
-// ─── Cloud Data Operations ─────────────────────────────
-
-interface UserDataRow {
-  owner_id: string;
-  user_id: string;
-  data: User;
-  updated_at: string;
-}
+// ─── Cloud Data Operations ───────────────────────────────────
 
 /** 拉取当前 owner 的全量用户数据 */
 export async function fetchAllUserData(
   client: SupabaseClient,
   ownerId: string
-): Promise<UserDataRow[]> {
-  const all: UserDataRow[] = [];
+): Promise<CloudDataRow[]> {
+  let firstPage = true;
+  const all: CloudDataRow[] = [];
   let cursor: string | null = null;
   do {
     const query = client
@@ -70,20 +66,54 @@ export async function fetchAllUserData(
     if (cursor) query.gt("user_id", cursor);
     const { data, error } = await query;
     if (error) {
-      console.warn("[fetchAllUserData]", error);
+      if (firstPage) {
+        throw new Error("[fetchAllUserData] first page query failed: " + JSON.stringify(error));
+      }
+      console.warn("[fetchAllUserData] subsequent page error, stopping", error);
       break;
     }
     if (data && data.length > 0) {
-      all.push(...(data as UserDataRow[]));
+      all.push(...(data as CloudDataRow[]));
       cursor = data[data.length - 1].user_id;
+      firstPage = false;
     } else {
+      firstPage = false;
       break;
     }
   } while (cursor);
   return all;
 }
 
-/** 条件推送：本地 __ts > 远端 updated_at 才写入 */
+/** 批量写入用户到云端（分块 upsert，每批 500 条） */
+export async function pushUsersBatch(
+  client: SupabaseClient,
+  ownerId: string,
+  users: User[]
+): Promise<boolean> {
+  if (users.length === 0) return true;
+  const now = new Date().toISOString();
+
+  for (let i = 0; i < users.length; i += 500) {
+    const batch = users.slice(i, i + 500).map(u => ({
+      owner_id: ownerId,
+      user_id: u.id,
+      data: u,
+      updated_at: now,
+    }));
+
+    const { error } = await client
+      .from("user_data")
+      .upsert(batch, { onConflict: "owner_id,user_id" });
+
+    if (error) {
+      console.warn("[pushUsersBatch] batch upsert error", error);
+      return false;
+    }
+  }
+  return true;
+}
+
+/** 条件推送单条：本地 __ts > 远端 updated_at 才写入 */
 export async function upsertUserData(
   client: SupabaseClient,
   ownerId: string,
@@ -128,7 +158,6 @@ export async function upsertUserData(
   }
   return { pushed: true };
 }
-
 
 /** 删除 owner 的全部用户数据 */
 export async function deleteAllUserData(

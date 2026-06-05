@@ -1,5 +1,5 @@
 import Dexie, { type Table } from "dexie";
-import type { User, OutboxOp } from "@/types";
+import type { User } from "@/types";
 
 interface MetaRow {
   key: string;
@@ -9,7 +9,6 @@ interface MetaRow {
 export class VipDatabase extends Dexie {
   users!: Table<User, string>;
   meta!: Table<MetaRow, string>;
-  outbox!: Table<OutboxOp, string>;
 
   constructor(userId: string) {
     super(`vip_manager_${userId}`);
@@ -29,6 +28,14 @@ export class VipDatabase extends Dexie {
       users: "id, phone, tail, pinned, amount, created, remark, cardNo",
       meta: "key",
       outbox: "key, type, user_id, ts",
+    });
+
+    this.version(4).stores({
+      users: "id, phone, tail, pinned, amount, created, remark, cardNo",
+      meta: "key",
+      outbox: null,
+    }).upgrade(async tx => {
+      await tx.table("outbox").clear();
     });
   }
 }
