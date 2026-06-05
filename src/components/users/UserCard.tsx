@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Plus, Minus, Star, MoreVertical, User as UserIcon, Trash2, Eye } from "lucide-react";
+import { Plus, Minus, Star, MoreVertical, CreditCard, Trash2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { useAppStore } from "@/store/useAppStore";
 import type { User } from "@/types";
 import { formatAmount, formatDate, getOperationText } from "@/lib/utils";
 
@@ -17,7 +16,6 @@ interface UserCardProps {
 export const UserCard = React.memo(function UserCard({
   user, onAddAmount, onSubtractAmount, onTogglePin, onShowOptions, onClick,
 }: UserCardProps) {
-  const currency = useAppStore((s) => s.currency);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -80,8 +78,13 @@ export const UserCard = React.memo(function UserCard({
             <div className="flex items-center gap-2">
               <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">
                 {user.phone || `尾号 ${user.tail}`}
+                 {user.remark && <span className="text-sm font-normal text-gray-400 dark:text-gray-500 ml-1">{user.remark}</span>}
               </h3>
-              {user.pinned && <Star size={16} className="text-warning fill-warning shrink-0" />}
+              {user.cardNo && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-xs font-medium text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 shrink-0">
+                  <CreditCard size={12} />{user.cardNo}
+                </span>
+              )}
             </div>
             {isOldUser && <p className="text-xs text-gray-500 dark:text-gray-400">旧用户</p>}
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">创建于{formatDate(user.created)}</p>

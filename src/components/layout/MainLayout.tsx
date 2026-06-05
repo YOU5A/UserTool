@@ -1,5 +1,5 @@
-﻿import { ReactNode, useState } from "react";
-import { Menu, X, Users, Star, BarChart2, Trash2, FileText, Settings, Sun, Moon } from "lucide-react";
+import { ReactNode, useState } from "react";
+import { Menu, X, Users, BarChart2, Trash2, FileText, Settings, Sun, Moon, CreditCard } from "lucide-react";
 import { Navbar } from "./Navbar";
 import { Sidebar } from "./Sidebar";
 import { useAppStore } from "@/store/useAppStore";
@@ -25,7 +25,7 @@ interface MainLayoutProps {
 
 const mobileLinks = [
   { id: "users" as const, icon: Users, label: "所有用户" },
-  { id: "pinned" as const, icon: Star, label: "置顶用户" },
+  { id: "card" as const, icon: CreditCard, label: "会员卡号" },
   { id: "stats" as const, icon: BarChart2, label: "数据统计" },
   { id: "trash" as const, icon: Trash2, label: "回收站" },
   { id: "logs" as const, icon: FileText, label: "操作日志" },

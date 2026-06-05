@@ -1,4 +1,4 @@
-import { RefreshCw, Settings, Users, Star, BarChart2, Trash2, FileText } from "lucide-react";
+import { RefreshCw, Settings, Users, BarChart2, Trash2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useAppStore } from "@/store/useAppStore";
 import { useVIPManager } from "@/hooks/useVIPManager";
@@ -12,13 +12,13 @@ interface SidebarProps {
 }
 
 export function Sidebar({ onRefresh, onSettings, onUserClick, onClearRecent }: SidebarProps) {
-  const { activeView, setActiveView, currency } = useAppStore();
+  const { activeView, setActiveView } = useAppStore();
+  const dataVersion = useAppStore((s) => s.dataVersion);
   const { mgr } = useVIPManager();
   const recentUsers = mgr.getRecentUsers();
 
   const links = [
     { id: "users" as const, icon: Users, label: "所有用户" },
-    { id: "pinned" as const, icon: Star, label: "置顶用户" },
     { id: "stats" as const, icon: BarChart2, label: "数据统计" },
     { id: "trash" as const, icon: Trash2, label: "回收站" },
     { id: "logs" as const, icon: FileText, label: "操作日志" },
@@ -62,7 +62,7 @@ export function Sidebar({ onRefresh, onSettings, onUserClick, onClearRecent }: S
                   </div>
                   <div className="ml-3 min-w-0">
                     <p className="text-sm font-medium text-gray-700 dark:text-gray-100 truncate">{user.phone || `尾号 ${user.tail}`}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">余额: {formatAmount(user.amount, currency)}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">余额: {formatAmount(user.amount)}</p>
                   </div>
                 </button>
               ))
@@ -89,6 +89,13 @@ export function Sidebar({ onRefresh, onSettings, onUserClick, onClearRecent }: S
                 <span className="nav-indicator" />
               </button>
             ))}
+            <button
+              onClick={onSettings}
+              className="flex items-center p-2 rounded-lg w-full text-left transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300"
+            >
+              <Settings size={18} className="w-5 h-5 text-center shrink-0" />
+              <span className="ml-3">设置</span>
+            </button>
           </div>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Sun, Moon, Download, Upload, DollarSign, Database, Palette, AlertTriangle, Trash2 } from "lucide-react";
+import { Sun, Moon, Download, Upload, Database, Palette, AlertTriangle, Trash2 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
@@ -78,10 +78,6 @@ export function SettingsModal() {
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleCurrencyChange = (newCurrency: string) => {
-    store.setCurrency(newCurrency);
-  };
-
   return (
     <Dialog open={store.modals.settings} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-xl" onClose={onClose}>
@@ -108,18 +104,6 @@ export function SettingsModal() {
                   <span className="text-sm">{t.label}</span>
                 </button>
               ))}
-            </div>
-          </div>
-
-          {/* Currency */}
-          <div className="rounded-xl border border-gray-200 dark:border-gray-700 p-4 bg-gray-50/50 dark:bg-gray-800/50">
-            <div className="flex items-center gap-2 mb-3">
-              <DollarSign size={18} className="text-primary" />
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200">货币单位</h3>
-            </div>
-            <div className="w-36">
-              <Select value={store.currency} onValueChange={handleCurrencyChange}
-                options={[{ value: "CNY", label: "\u00a5 CNY" }, { value: "USD", label: "$ USD" }]} />
             </div>
           </div>
 

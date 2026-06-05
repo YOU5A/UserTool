@@ -15,6 +15,8 @@ export interface User {
   pinned: boolean;
   deleted: boolean;
   purged: boolean;
+  remark?: string;
+  cardNo?: string;
   history: HistoryRecord[];
   __ts?: number;
   _deletedAt?: string;
@@ -58,8 +60,8 @@ export interface ExportPayload {
   };
   settings: {
     usersPerPage: number;
-    currency: string;
     theme: string;
+    currency?: string;
   };
 }
 

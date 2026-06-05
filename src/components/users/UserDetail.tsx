@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Plus, Minus, Star, User as UserIcon, ChevronDown, TrendingUp, TrendingDown, Calendar, Hash, Activity } from "lucide-react";
+import { Plus, Minus, Star, User as UserIcon, ChevronDown, TrendingUp, TrendingDown, Calendar, Hash, Activity, Pencil, Check, X, CreditCard } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
 import { HistoryItem } from "@/components/history/HistoryItem";
@@ -11,8 +11,31 @@ export function UserDetail() {
   const store = useAppStore();
   const { mgr, rerender } = useVIPManager();
   const [showAllHistory, setShowAllHistory] = useState(false);
+  const [editingRemark, setEditingRemark] = useState(false);
+  const [editingCardNo, setEditingCardNo] = useState(false);
+  const [remarkValue, setRemarkValue] = useState("");
+  const [cardNoValue, setCardNoValue] = useState("");
+  const [cardNoError, setCardNoError] = useState("");
 
   const onClose = () => store.closeModal("userDetail");
+
+  const startEditRemark = () => { setRemarkValue(user?.remark || ""); setEditingRemark(true); };
+  const saveRemark = () => {
+    if (userId && mgr.updateUserInfo(userId, { remark: remarkValue })) { rerender(); }
+    setEditingRemark(false);
+  };
+  const startEditCardNo = () => { setCardNoValue(user?.cardNo || ""); setEditingCardNo(true); };
+  const saveCardNo = () => {
+    let normalized = cardNoValue.replace(/\D/g, "").slice(0, 4);
+    if (normalized) normalized = normalized.padStart(4, "0");
+    if (userId && mgr.updateUserInfo(userId, { cardNo: normalized })) {
+      rerender();
+      setEditingCardNo(false);
+      setCardNoError("");
+    } else {
+      setCardNoError("卡号已存在或格式无效");
+    }
+  };
 
   // 所有数据获取必须在 hooks 之前声明，避免条件返回导致的 hooks 数量不一致
   const userId = store.currentUserId;
@@ -49,9 +72,10 @@ export function UserDetail() {
               <UserIcon size={28} />
             </div>
             <div className="flex-1 min-w-0">
-              <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{displayName}</h3>
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{displayName}{user.remark && <span className="text-sm font-normal text-gray-400 dark:text-gray-500 ml-2">{user.remark}</span>}</h3>
               <div className="flex items-center gap-3 mt-1 text-sm text-gray-500 dark:text-gray-400">
                 <span className="flex items-center gap-1"><Hash size={14} /> 尾号: {user.tail}</span>
+                {user.cardNo && <span className="flex items-center gap-1"><CreditCard size={14} /> {user.cardNo}</span>}
                 <span className="flex items-center gap-1"><Calendar size={14} /> 创建: {user.created ? formatDate(user.created) : "未知"}</span>
               </div>
             </div>
@@ -61,35 +85,94 @@ export function UserDetail() {
             </div>
           </div>
 
+          {/* 用户信息编辑 */}
+          <div className="mb-5 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-200 dark:border-gray-700">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3 flex items-center gap-2">
+              <Pencil size={14} /> 用户信息
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* 姓名 */}
+              <div>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">姓名</label>
+                {editingRemark ? (
+                  <div className="flex items-center gap-2">
+                    <input
+                      value={remarkValue}
+                      onChange={(e) => setRemarkValue(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && saveRemark()}
+                      className="flex-1 px-3 py-2 text-sm bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-900 dark:text-gray-100"
+                      placeholder="姓名"
+                      autoFocus
+                    />
+                    <button onClick={saveRemark} className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/60 transition-colors"><Check size={16} /></button>
+                    <button onClick={() => setEditingRemark(false)} className="p-2 rounded-lg bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"><X size={16} /></button>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between px-3 py-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <span className="text-sm text-gray-900 dark:text-gray-100">{user.remark || "未设置"}</span>
+                    <button onClick={startEditRemark} className="text-gray-400 hover:text-primary transition-colors p-1"><Pencil size={14} /></button>
+                  </div>
+                )}
+              </div>
+              {/* 会员卡号 */}
+              <div>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1.5">会员卡号</label>
+                {editingCardNo ? (
+                  <><div className="flex items-center gap-2">
+                    <input
+                      value={cardNoValue}
+                      onChange={(e) => { const d = e.target.value.replace(/\D/g, "").slice(0, 4); setCardNoValue(d); }}
+                      onKeyDown={(e) => e.key === "Enter" && saveCardNo()}
+                      className="flex-1 px-3 py-2 text-sm bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-900 dark:text-gray-100"
+                      placeholder="0001"
+                      maxLength={4}
+                      inputMode="numeric"
+                      pattern="\d*"
+                      autoFocus
+                    />
+                    <button onClick={saveCardNo} className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/60 transition-colors"><Check size={16} /></button>
+                    <button onClick={() => { setEditingCardNo(false); setCardNoError(""); }} className="p-2 rounded-lg bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"><X size={16} /></button>
+                  </div>
+                  {cardNoError && <p className="text-danger text-xs mt-1">{cardNoError}</p>}
+                  </>) : (
+                  <div className="flex items-center justify-between px-3 py-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                    <span className="text-sm text-gray-900 dark:text-gray-100">{user.cardNo || "未设置"}</span>
+                    <button onClick={startEditCardNo} className="text-gray-400 hover:text-primary transition-colors p-1"><Pencil size={14} /></button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Stats Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-            <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-4 border border-emerald-200 dark:border-emerald-800">
-              <div className="flex items-center gap-2 mb-1">
-                <TrendingUp size={16} className="text-emerald-600 dark:text-emerald-400" />
-                <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">累计充值</span>
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-6">
+            <div className="rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/40 p-4 sm:p-5 flex flex-col justify-between min-h-[90px]">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingUp size={16} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span className="text-xs sm:text-sm text-emerald-700 dark:text-emerald-300 font-medium truncate">累计充值</span>
               </div>
-              <p className="text-lg font-bold text-emerald-700 dark:text-emerald-300">{formatAmount(stats.totalRecharge)}</p>
+              <p className="text-xl sm:text-2xl font-bold text-emerald-800 dark:text-emerald-200 truncate">{formatAmount(stats.totalRecharge)}</p>
             </div>
-            <div className="bg-orange-50 dark:bg-orange-900/20 rounded-xl p-4 border border-orange-200 dark:border-orange-800">
-              <div className="flex items-center gap-2 mb-1">
-                <TrendingDown size={16} className="text-orange-600 dark:text-orange-400" />
-                <span className="text-xs text-orange-600 dark:text-orange-400 font-medium">累计消费</span>
+            <div className="rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/40 p-4 sm:p-5 flex flex-col justify-between min-h-[90px]">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingDown size={16} className="text-rose-600 dark:text-rose-400 shrink-0" />
+                <span className="text-xs sm:text-sm text-rose-700 dark:text-rose-300 font-medium truncate">累计消费</span>
               </div>
-              <p className="text-lg font-bold text-orange-700 dark:text-orange-300">{formatAmount(stats.totalConsume)}</p>
+              <p className="text-xl sm:text-2xl font-bold text-rose-800 dark:text-rose-200 truncate">{formatAmount(stats.totalConsume)}</p>
             </div>
-            <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
-              <div className="flex items-center gap-2 mb-1">
-                <Activity size={16} className="text-blue-600 dark:text-blue-400" />
-                <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">操作次数</span>
+            <div className="rounded-2xl bg-sky-50 dark:bg-sky-950/30 border border-sky-100 dark:border-sky-900/40 p-4 sm:p-5 flex flex-col justify-between min-h-[90px]">
+              <div className="flex items-center gap-2 mb-2">
+                <Activity size={16} className="text-sky-600 dark:text-sky-400 shrink-0" />
+                <span className="text-xs sm:text-sm text-sky-700 dark:text-sky-300 font-medium truncate">操作次数</span>
               </div>
-              <p className="text-lg font-bold text-blue-700 dark:text-blue-300">{stats.totalOps}</p>
+              <p className="text-xl sm:text-2xl font-bold text-sky-800 dark:text-sky-200 truncate">{stats.totalOps}</p>
             </div>
-            <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-4 border border-purple-200 dark:border-purple-800">
-              <div className="flex items-center gap-2 mb-1">
-                <Calendar size={16} className="text-purple-600 dark:text-purple-400" />
-                <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">最近活跃</span>
+            <div className="rounded-2xl bg-violet-50 dark:bg-violet-950/30 border border-violet-100 dark:border-violet-900/40 p-4 sm:p-5 flex flex-col justify-between min-h-[90px]">
+              <div className="flex items-center gap-2 mb-2">
+                <Calendar size={16} className="text-violet-600 dark:text-violet-400 shrink-0" />
+                <span className="text-xs sm:text-sm text-violet-700 dark:text-violet-300 font-medium truncate">最近活跃</span>
               </div>
-              <p className="text-sm font-bold text-purple-700 dark:text-purple-300">
+              <p className="text-sm sm:text-base font-semibold text-violet-800 dark:text-violet-200 truncate">
                 {stats.lastActivity ? formatDate(stats.lastActivity) : "暂无记录"}
               </p>
             </div>

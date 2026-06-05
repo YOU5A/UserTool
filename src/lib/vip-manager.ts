@@ -1,6 +1,6 @@
 import type { User, HistoryRecord, SyncState, OutboxOp, LogEntry, CloudSyncSettings, ExportPayload, StatsData, ImportResult } from "@/types";
 import { getDb, closeDb, type VipDatabase } from "./db";
-import { generateId, getConversionRate, getBaseCurrency, setBaseCurrency } from "./utils";
+import { generateId, getConversionRate, getBaseCurrency, setBaseCurrency, normalizeCardNo, isValidCardNo } from "./utils";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   fetchAllUserData,
@@ -27,8 +27,8 @@ export interface VIPManagerInstance {
   syncPushToCloud(client: SupabaseClient, ownerId: string): Promise<void>;
   syncPullFromCloud(client: SupabaseClient, ownerId: string): Promise<void>;
   getOutboxCount(): number;
-  addNewUser(phone: string, initialAmount: number): string | null;
-  addOldUser(tail: string, initialAmount: number): string | null;
+  addNewUser(phone: string, initialAmount: number, remark?: string, cardNo?: string): string | null;
+  addOldUser(tail: string, initialAmount: number, remark?: string, cardNo?: string): string | null;
   deleteUser(userId: string): boolean;
   purgeTrashItem(userId: string): boolean;
   clearTrash(): boolean;
@@ -38,6 +38,7 @@ export interface VIPManagerInstance {
   togglePin(userId: string): boolean;
   editHistory(userId: string, historyId: string, newData: { type: string; amount: number; description: string }): boolean;
   deleteHistory(userId: string, historyId: string): boolean;
+  updateUserInfo(userId: string, data: { remark?: string; cardNo?: string }): boolean;
   getUser(userId: string): User | undefined;
   getAllUsers(): User[];
   getTrashUsers(): User[];
@@ -234,6 +235,8 @@ export function createVIPManager(): VIPManagerInstance {
       if (u.pinned === undefined || u.pinned === null) u.pinned = false;
       if (u.deleted === undefined || u.deleted === null) u.deleted = false;
       if (u.purged === undefined || u.purged === null) u.purged = false;
+      if (u.cardNo === undefined || u.cardNo === null) u.cardNo = "";
+      if (u.remark === undefined || u.remark === null) u.remark = "";
       state.users[u.id] = u;
     });
 
@@ -374,10 +377,12 @@ export function createVIPManager(): VIPManagerInstance {
   }
 
 
-  function addNewUser(phone: string, initialAmount: number): string | null {
+  function addNewUser(phone: string, initialAmount: number, remark?: string, cardNo?: string): string | null {
     const phoneRegex = /^\d{11}$/;
     if (!phoneRegex.test(phone)) return null;
     if (state.users[phone]) return null;
+    const normalizedCardNo = cardNo ? normalizeCardNo(cardNo) : "";
+    if (normalizedCardNo) { const dupCard = Object.values(state.users).find(u => u.cardNo === normalizedCardNo); if (dupCard) return null; }
 
     const newUser: User = {
       id: phone,
@@ -388,6 +393,8 @@ export function createVIPManager(): VIPManagerInstance {
       pinned: false,
       deleted: false,
       purged: false,
+      remark: remark || "",
+      cardNo: normalizedCardNo,
       history: initialAmount > 0 ? [{
         id: generateHistoryId(),
         type: "add",
@@ -405,11 +412,13 @@ export function createVIPManager(): VIPManagerInstance {
     return phone;
   }
 
-  function addOldUser(tail: string, initialAmount: number): string | null {
+  function addOldUser(tail: string, initialAmount: number, remark?: string, cardNo?: string): string | null {
     const tailRegex = /^\d{4}$/;
     if (!tailRegex.test(tail)) return null;
 
     const userId = "old-" + tail;
+    const normalizedCardNo = cardNo ? normalizeCardNo(cardNo) : "";
+    if (normalizedCardNo) { const dupCard = Object.values(state.users).find(u => u.cardNo === normalizedCardNo); if (dupCard) return null; }
     const existing = Object.values(state.users).find(u => u.tail === tail);
     if (existing) return null;
 
@@ -422,24 +431,26 @@ export function createVIPManager(): VIPManagerInstance {
       pinned: false,
       deleted: false,
       purged: false,
+      remark: remark || "",
+      cardNo: normalizedCardNo,
       history: initialAmount > 0 ? [{
         id: generateHistoryId(),
         type: "add",
         amount: initialAmount,
         date: new Date().toISOString(),
-        description: "初始充值",
+        description: "????",
       }] : [],
       __ts: Date.now(),
     };
 
     state.users[userId] = newUser;
     state.recentViewed = [userId, ...state.recentViewed.filter(id => id !== userId)].slice(0, 20);
-    addLog({ type: "ADD_USER", message: "添加老用户: \u5c3e\u53f7" + tail });
+    addLog({ type: "ADD_USER", message: "?????: ??" + tail });
     onUserUpsert(userId);
     return userId;
   }
 
-  function deleteUser(userId: string): boolean {
+function deleteUser(userId: string): boolean {
     const user = state.users[userId];
     if (!user) return false;
     user.deleted = true;
@@ -564,6 +575,23 @@ export function createVIPManager(): VIPManagerInstance {
     return true;
   }
 
+  function updateUserInfo(userId: string, data: { remark?: string; cardNo?: string }): boolean {
+    const user = state.users[userId];
+    if (!user || user.purged) return false;
+    if (data.remark !== undefined) user.remark = data.remark;
+    if (data.cardNo !== undefined) {
+      const normalized = normalizeCardNo(data.cardNo);
+      if (normalized && normalized !== user.cardNo) {
+        const dup = Object.values(state.users).find(u => u.id !== userId && u.cardNo === normalized);
+        if (dup) return false;
+      }
+      user.cardNo = normalized;
+    }
+    user.__ts = Date.now();
+    onUserUpsert(userId);
+    return true;
+  }
+
   function getUser(userId: string): User | undefined {
     return state.users[userId];
   }
@@ -592,6 +620,7 @@ export function createVIPManager(): VIPManagerInstance {
       case "high": return all.filter(u => u.amount > 300);
       case "medium": return all.filter(u => u.amount >= 100 && u.amount <= 300);
       case "low": return all.filter(u => u.amount < 100);
+      case "card": return all.filter(u => !!u.cardNo);
       default: return all;
     }
   }
@@ -923,6 +952,7 @@ export function createVIPManager(): VIPManagerInstance {
     togglePin,
     editHistory,
     deleteHistory,
+    updateUserInfo,
     getUser,
     getAllUsers,
     getTrashUsers,

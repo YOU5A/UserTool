@@ -11,7 +11,14 @@ export function Dialog({ open, onOpenChange, children }: {
     <DialogPrimitive.Root open={open} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50" />
-        <DialogPrimitive.Content className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <DialogPrimitive.Content
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              onOpenChange(false);
+            }
+          }}
+        >
           {children}
         </DialogPrimitive.Content>
       </DialogPrimitive.Portal>

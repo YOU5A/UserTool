@@ -24,6 +24,12 @@ export class VipDatabase extends Dexie {
       meta: "key",
       outbox: "key, type, user_id, ts",
     });
+
+    this.version(3).stores({
+      users: "id, phone, tail, pinned, amount, created, remark, cardNo",
+      meta: "key",
+      outbox: "key, type, user_id, ts",
+    });
   }
 }
 

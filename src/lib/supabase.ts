@@ -129,6 +129,24 @@ export async function upsertUserData(
   return { pushed: true };
 }
 
+
+/** 删除 owner 的全部用户数据 */
+export async function deleteAllUserData(
+  client: SupabaseClient,
+  ownerId: string
+): Promise<boolean> {
+  const { error } = await client
+    .from("user_data")
+    .delete()
+    .eq("owner_id", ownerId);
+
+  if (error) {
+    console.warn("[deleteAllUserData]", error);
+    return false;
+  }
+  return true;
+}
+
 /** 从云端删除用户 */
 export async function deleteUserData(
   client: SupabaseClient,

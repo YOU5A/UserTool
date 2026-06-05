@@ -12,6 +12,8 @@ export function UserForm() {
   const [phone, setPhone] = useState("");
   const [tail, setTail] = useState("");
   const [initialAmount, setInitialAmount] = useState("0");
+  const [remark, setRemark] = useState("");
+  const [cardNo, setCardNo] = useState("");
   const [error, setError] = useState("");
 
   const onClose = () => {
@@ -20,18 +22,20 @@ export function UserForm() {
     setPhone("");
     setTail("");
     setInitialAmount("0");
+    setRemark("");
+    setCardNo("");
   };
 
   const handleSubmit = () => {
     setError("");
     if (isNewUser) {
       if (!/^\d{11}$/.test(phone)) { setError("请输入有效的11位手机号"); return; }
-      const result = mgr.addNewUser(phone, parseFloat(initialAmount) || 0);
-      if (!result) { setError("该用户已存在或手机号无效"); return; }
+      const result = mgr.addNewUser(phone, parseFloat(initialAmount) || 0, remark || undefined, cardNo || undefined);
+      if (!result) { setError("该用户已存在或卡号重复"); return; }
     } else {
       if (!/^\d{4}$/.test(tail)) { setError("请输入4位尾号"); return; }
-      const result = mgr.addOldUser(tail, parseFloat(initialAmount) || 0);
-      if (!result) { setError("该用户已存在或尾号无效"); return; }
+      const result = mgr.addOldUser(tail, parseFloat(initialAmount) || 0, remark || undefined, cardNo || undefined);
+      if (!result) { setError("该用户已存在或卡号重复"); return; }
     }
     rerender();
     onClose();
@@ -70,6 +74,28 @@ export function UserForm() {
           <div>
             <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">初始余额</label>
             <Input type="number" value={initialAmount} onChange={(e) => setInitialAmount(e.target.value)} placeholder="0" />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">姓名</label>
+            <Input value={remark} onChange={(e) => setRemark(e.target.value)} placeholder="姓名" />
+          </div>
+          <div>
+            <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">
+              会员卡号 <span className="text-xs text-gray-400 font-normal">(4位数字)</span>
+            </label>
+            <Input
+              value={cardNo}
+              onChange={(e) => {
+                const raw = e.target.value.replace(/\D/g, "");
+                const digits = raw.slice(0, 4);
+                // Live pad to 4 digits as user types
+                setCardNo(digits.padStart(4, "0"));
+              }}
+              placeholder="0001"
+              maxLength={4}
+              inputMode="numeric"
+              pattern="\d*"
+            />
           </div>
           {error && <p className="text-danger text-sm">{error}</p>}
           <div className="flex justify-end gap-3 pt-2">

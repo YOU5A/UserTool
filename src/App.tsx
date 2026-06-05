@@ -1,4 +1,4 @@
-﻿import { useEffect, useCallback, lazy, Suspense, useRef } from "react";
+import { useEffect, useCallback, lazy, Suspense, useRef } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { UserGrid } from "@/components/users/UserGrid";
 import { UserDetail } from "@/components/users/UserDetail";
@@ -63,6 +63,9 @@ export default function App() {
       case "users":
         store.setActiveFilter("all");
         break;
+      case "card":
+        store.setActiveFilter("card");
+        break;
       case "pinned":
         store.setActiveFilter("pinned");
         break;
@@ -99,6 +102,7 @@ export default function App() {
   const handleUserClick = useCallback((userId: string) => {
     store.setCurrentUserId(userId);
     mgr.addRecentView(userId);
+    store.setActiveView("users");
     store.openModal("userDetail");
     rerender();
   }, [mgr, rerender]);

@@ -10,8 +10,7 @@ interface AppState {
   currentUserId: string | null;
   currentHistoryId: string | null;
   theme: "light" | "dark";
-  currency: string;
-  activeView: "users" | "pinned" | "stats" | "trash" | "logs" | "settings";
+  activeView: "users" | "pinned" | "card" | "stats" | "trash" | "logs" | "settings";
 
   // Modal State
   modals: {
@@ -40,7 +39,6 @@ interface AppState {
   setCurrentUserId: (id: string | null) => void;
   setCurrentHistoryId: (id: string | null) => void;
   setTheme: (t: "light" | "dark") => void;
-  setCurrency: (c: string) => void;
   setActiveView: (v: AppState["activeView"]) => void;
   openModal: (name: keyof AppState["modals"]) => void;
   closeModal: (name: keyof AppState["modals"]) => void;
@@ -54,7 +52,6 @@ export const useAppStore = create<AppState>((set) => ({
   currentUserId: null,
   currentHistoryId: null,
   theme: (localStorage.getItem("theme") as "light" | "dark") || "light",
-  currency: localStorage.getItem("currency") || "CNY",
   activeView: "users",
   dataVersion: 0,
 
@@ -86,7 +83,6 @@ export const useAppStore = create<AppState>((set) => ({
     else document.documentElement.classList.remove("dark");
     set({ theme: t });
   },
-  setCurrency: (c) => { localStorage.setItem("currency", c); set((s) => ({ currency: c, dataVersion: s.dataVersion + 1 })); },
   setActiveView: (v) => set({ activeView: v }),
   openModal: (name) => set((s) => ({ modals: { ...s.modals, [name]: true } })),
   closeModal: (name) => set((s) => ({ modals: { ...s.modals, [name]: false } })),

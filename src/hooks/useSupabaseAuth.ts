@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { User, Session } from "@supabase/supabase-js";
 import {
   initSupabaseClient,
@@ -126,6 +126,8 @@ export function useSupabaseAuth() {
         console.log("[useSupabaseAuth] onAuthStateChange:", event, !!session?.user);
         if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session?.user) {
           if (!mounted) return;
+          await restoreSession(client, session);
+          if (!mounted) return;
           setAuth({
             isConfigured: true,
             isLoggedIn: true,
@@ -134,7 +136,6 @@ export function useSupabaseAuth() {
             loading: false,
             error: null,
           });
-          await restoreSession(client, session);
         } else if (event === "TOKEN_REFRESHED") {
           if (!mounted) return;
           console.log("[useSupabaseAuth] token refreshed");
