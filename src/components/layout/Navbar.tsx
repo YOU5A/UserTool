@@ -2,6 +2,7 @@
 import { memo } from "react";
 import { Search, PlusCircle, LogOut, LogIn, X, UserPlus, WifiOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
+import { getConfigCookie } from "@/lib/auth-storage";
 import { Input } from "@/components/ui/Input";
 
 interface NavbarProps {
@@ -36,8 +37,8 @@ export const Navbar = memo(function Navbar({
   const [showLogin, setShowLogin] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [url, setUrl] = useState(localStorage.getItem("sb_project_url") || "");
-  const [anonKey, setAnonKey] = useState(localStorage.getItem("sb_anon_key") || "");
+  const [url, setUrl] = useState(localStorage.getItem("sb_project_url") || getConfigCookie("sb_project_url") || "");
+  const [anonKey, setAnonKey] = useState(localStorage.getItem("sb_anon_key") || getConfigCookie("sb_anon_key") || "");
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
