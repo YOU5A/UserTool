@@ -1,7 +1,6 @@
 ﻿import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { User } from "@/types";
 import type { CloudDataRow } from "./vip-manager";
-import { cookieStorage, getConfigCookie, setConfigCookie, removeConfigCookie } from "./auth-storage";
 
 let supabaseClient: SupabaseClient | null = null;
 
@@ -9,12 +8,8 @@ const STORAGE_KEY_URL = "sb_project_url";
 const STORAGE_KEY_ANON = "sb_anon_key";
 
 export function getSupabaseConfig(): { url: string; anonKey: string } | null {
-  // 优先从 localStorage 读取
-  let url = localStorage.getItem(STORAGE_KEY_URL);
-  let anonKey = localStorage.getItem(STORAGE_KEY_ANON);
-  // 回退到 cookie（WebView 环境下 localStorage 刷新可能丢失）
-  if (!url) url = getConfigCookie(STORAGE_KEY_URL);
-  if (!anonKey) anonKey = getConfigCookie(STORAGE_KEY_ANON);
+  const url = localStorage.getItem(STORAGE_KEY_URL);
+  const anonKey = localStorage.getItem(STORAGE_KEY_ANON);
   if (url && anonKey) return { url, anonKey };
   return null;
 }
@@ -22,17 +17,11 @@ export function getSupabaseConfig(): { url: string; anonKey: string } | null {
 export function saveSupabaseConfig(url: string, anonKey: string): void {
   localStorage.setItem(STORAGE_KEY_URL, url);
   localStorage.setItem(STORAGE_KEY_ANON, anonKey);
-  // 同时写 cookie 备份（localStorage 丢失时回退）
-  setConfigCookie(STORAGE_KEY_URL, url);
-  setConfigCookie(STORAGE_KEY_ANON, anonKey);
 }
 
 export function clearSupabaseConfig(): void {
   localStorage.removeItem(STORAGE_KEY_URL);
   localStorage.removeItem(STORAGE_KEY_ANON);
-  // 同时清除 cookie 备份
-  removeConfigCookie(STORAGE_KEY_URL);
-  removeConfigCookie(STORAGE_KEY_ANON);
   supabaseClient = null;
 }
 
@@ -40,7 +29,7 @@ export function initSupabaseClient(): SupabaseClient | null {
   const config = getSupabaseConfig();
   if (!config) return null;
   supabaseClient = createClient(config.url, config.anonKey, {
-    auth: { persistSession: true, autoRefreshToken: true, storage: cookieStorage },
+    auth: { persistSession: true, autoRefreshToken: true },
   });
   return supabaseClient;
 }

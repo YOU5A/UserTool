@@ -1,4 +1,4 @@
-import { useEffect, useCallback, lazy, Suspense, useRef } from "react";
+﻿import { useEffect, useCallback, lazy, Suspense, useRef } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { UserGrid } from "@/components/users/UserGrid";
 import { UserDetail } from "@/components/users/UserDetail";
@@ -10,7 +10,8 @@ import { LogsModal } from "@/components/modals/LogsModal";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
 import { useAppStore } from "@/store/useAppStore";
 import { useVIPManager } from "@/hooks/useVIPManager";
-import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
+import { useAuth } from "@/context/AuthContext";
+import { useSyncManager } from "@/hooks/useSyncManager";
 
 const StatsModal = lazy(() => import("@/components/modals/StatsModal").then(m => ({ default: m.StatsModal })));
 const SettingsModal = lazy(() => import("@/components/modals/SettingsModal").then(m => ({ default: m.SettingsModal })));
@@ -34,29 +35,32 @@ function SettingsLazy() {
 export default function App() {
   const store = useAppStore();
   const { mgr, rerender } = useVIPManager();
-  const auth = useSupabaseAuth();
-  const initDone = useRef(false);
+  const auth = useAuth();
+  const { doPull, pushBeforeSignOut, setupRealtime, pullFromCloud } = useSyncManager();
 
-  // 核心初始化：等 auth 状态确认后再决定用哪个数据库
+  // Track which userId was initialized to avoid re-init on re-render
+  const initUserId = useRef<string | null>(null);
+
+  // Wait for auth to resolve, then init the appropriate DB
   useEffect(() => {
     if (auth.loading) return;
-    if (initDone.current) return;
+    const targetId = auth.isLoggedIn ? auth.user?.id ?? "local_offline" : "local_offline";
+    if (initUserId.current === targetId) return;
+
     (async () => {
       try {
+        initUserId.current = targetId;
+        await mgr.init(targetId);
         if (auth.isLoggedIn && auth.user) {
-          // 已登录：auth hook 已处理 init + pull，只需刷新
-          rerender();
-        } else {
-          // 未登录或未配置：使用离线数据库
-          await mgr.init("local_offline");
-          rerender();
+          await doPull();
+          setupRealtime();
         }
-        initDone.current = true;
+        rerender();
       } catch (e) {
-        if (import.meta.env.DEV) { console.warn("Init failed:", e); }
+        if (import.meta.env.DEV) console.warn("[App] init failed:", e);
       }
     })();
-  }, [auth.loading, auth.isLoggedIn]);
+  }, [auth.loading, auth.isLoggedIn, auth.user]);
 
   // Apply theme on mount
   useEffect(() => {
@@ -95,13 +99,13 @@ export default function App() {
   const handleRefresh = useCallback(async () => {
     if (auth.isLoggedIn) {
       try {
-        await auth.pullFromCloud();
+        await pullFromCloud();
       } catch (e) {
-        if (import.meta.env.DEV) { console.error("[App] pullFromCloud failed:", e); }
+        if (import.meta.env.DEV) console.error("[App] pullFromCloud failed:", e);
       }
     }
     rerender();
-  }, [auth.isLoggedIn, auth.pullFromCloud, rerender]);
+  }, [auth.isLoggedIn, pullFromCloud, rerender]);
 
   const handleAddUser = useCallback(() => store.openModal("addUser"), []);
   const handleSettings = useCallback(() => store.openModal("settings"), []);
@@ -116,11 +120,17 @@ export default function App() {
     mgr.state.recentViewed = [];
     rerender();
   }, [mgr, rerender]);
+
   const handleLogout = useCallback(async () => {
-    // signOut 内部已处理 push + init("local_offline")
+    // Push remaining changes before sign-out
+    await pushBeforeSignOut();
+    // Sign out (onAuthStateChange will fire SIGNED_OUT)
     await auth.signOut();
+    // Switch to offline DB
+    initUserId.current = "local_offline";
+    await mgr.init("local_offline");
     rerender();
-  }, [auth, rerender]);
+  }, [auth, pushBeforeSignOut, mgr, rerender]);
 
   return (
     <ErrorBoundary>
@@ -132,14 +142,7 @@ export default function App() {
         onSettings={handleSettings}
         onUserClick={handleUserClick}
         onClearRecent={handleClearRecent}
-        isLoggedIn={auth.isLoggedIn}
-        userEmail={auth.user?.email}
         onLogout={handleLogout}
-        isConfigured={auth.isConfigured}
-        onConfigure={auth.configureAndSave}
-        onClearConfig={auth.clearConfig}
-        onSignIn={auth.signIn}
-        onSignUp={auth.signUp}
       >
         <UserGrid />
       </MainLayout>

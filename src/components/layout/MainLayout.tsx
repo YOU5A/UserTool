@@ -1,4 +1,4 @@
-import { ReactNode, useState, memo } from "react";
+﻿import { ReactNode, useState, memo } from "react";
 import { Menu, X, Users, BarChart2, Trash2, FileText, Settings, Sun, Moon } from "lucide-react";
 import { Navbar } from "./Navbar";
 import { Sidebar } from "./Sidebar";
@@ -12,14 +12,7 @@ interface MainLayoutProps {
   onSettings: () => void;
   onUserClick: (userId: string) => void;
   onClearRecent: () => void;
-  isLoggedIn?: boolean;
-  userEmail?: string;
   onLogout?: () => void;
-  isConfigured?: boolean;
-  onConfigure?: (url: string, anonKey: string) => boolean;
-  onClearConfig?: () => void;
-  onSignIn?: (email: string, password: string) => Promise<{ error: string | null }>;
-  onSignUp?: (email: string, password: string) => Promise<{ error: string | null }>;
   children: ReactNode;
 }
 
@@ -32,8 +25,7 @@ const mobileLinks = [
 
 export const MainLayout = memo(function MainLayout({
   searchQuery, onSearchChange, onAddUser, onRefresh, onSettings,
-  onUserClick, onClearRecent, isLoggedIn, userEmail, onLogout,
-  isConfigured, onConfigure, onClearConfig, onSignIn, onSignUp, children,
+  onUserClick, onClearRecent, onLogout, children,
 }: MainLayoutProps) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { activeView, setActiveView, theme, setTheme } = useAppStore();
@@ -50,14 +42,7 @@ export const MainLayout = memo(function MainLayout({
         onSearchChange={onSearchChange}
         onAddUser={onAddUser}
         onRefresh={onRefresh}
-        isLoggedIn={isLoggedIn}
-        userEmail={userEmail}
         onLogout={onLogout}
-        isConfigured={isConfigured}
-        onConfigure={onConfigure}
-        onClearConfig={onClearConfig}
-        onSignIn={onSignIn}
-        onSignUp={onSignUp}
       />
       <div className="flex flex-1 overflow-hidden">
         {/* Desktop Sidebar */}
@@ -72,7 +57,6 @@ export const MainLayout = memo(function MainLayout({
           <>
             <div className="fixed inset-0 z-40 bg-black/40 md:hidden" onClick={() => setMobileNavOpen(false)} />
             <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-white dark:bg-dark rounded-t-2xl shadow-2xl border-t border-gray-200 dark:border-gray-700 animate-slide-up">
-              {/* Handle */}
               <div className="flex justify-center pt-3 pb-1">
                 <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600" />
               </div>
@@ -94,11 +78,7 @@ export const MainLayout = memo(function MainLayout({
                     </button>
                   ))}
                 </div>
-
-                {/* Divider */}
                 <div className="my-3 border-t border-gray-100 dark:border-gray-700" />
-
-                {/* Settings & Theme */}
                 <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3 px-2">设置</h3>
                 <button
                   onClick={() => { onSettings(); setMobileNavOpen(false); }}

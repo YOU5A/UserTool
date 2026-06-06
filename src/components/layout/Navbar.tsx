@@ -2,22 +2,15 @@
 import { memo } from "react";
 import { Search, PlusCircle, LogOut, LogIn, X, UserPlus, WifiOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { getConfigCookie } from "@/lib/auth-storage";
 import { Input } from "@/components/ui/Input";
+import { useAuth } from "@/context/AuthContext";
 
 interface NavbarProps {
   searchQuery: string;
   onSearchChange: (q: string) => void;
   onAddUser: () => void;
   onRefresh?: () => void;
-  isLoggedIn?: boolean;
-  userEmail?: string;
   onLogout?: () => void;
-  isConfigured?: boolean;
-  onConfigure?: (url: string, anonKey: string) => boolean;
-  onClearConfig?: () => void;
-  onSignIn?: (email: string, password: string) => Promise<{ error: string | null }>;
-  onSignUp?: (email: string, password: string) => Promise<{ error: string | null }>;
 }
 
 export const Navbar = memo(function Navbar({
@@ -25,20 +18,15 @@ export const Navbar = memo(function Navbar({
   onSearchChange,
   onAddUser,
   onRefresh,
-  isLoggedIn,
-  userEmail,
   onLogout,
-  isConfigured = false,
-  onConfigure,
-  onClearConfig,
-  onSignIn,
-  onSignUp,
 }: NavbarProps) {
+  const { isLoggedIn, user, isConfigured, configureAndSave, clearConfig, signIn, signUp } = useAuth();
+
   const [showLogin, setShowLogin] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [url, setUrl] = useState(localStorage.getItem("sb_project_url") || getConfigCookie("sb_project_url") || "");
-  const [anonKey, setAnonKey] = useState(localStorage.getItem("sb_anon_key") || getConfigCookie("sb_anon_key") || "");
+  const [url, setUrl] = useState(localStorage.getItem("sb_project_url") || "");
+  const [anonKey, setAnonKey] = useState(localStorage.getItem("sb_anon_key") || "");
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
@@ -46,7 +34,7 @@ export const Navbar = memo(function Navbar({
   const handleSaveConfig = () => {
     setMsg("");
     if (!url || !anonKey) { setMsg("请填写 Project URL 和 Anon Key"); return; }
-    if (onConfigure) { onConfigure(url, anonKey); }
+    configureAndSave(url, anonKey);
     setMsg("配置已保存");
   };
 
@@ -54,7 +42,7 @@ export const Navbar = memo(function Navbar({
     setMsg("");
     if (!email || !password) { setMsg("请填写邮箱和密码"); return; }
     setLoading(true);
-    const result = onSignIn ? await onSignIn(email, password) : { error: "登录功能不可用" };
+    const result = await signIn(email, password);
     setLoading(false);
     if (result.error) setMsg(result.error);
     else setShowLogin(false);
@@ -64,7 +52,7 @@ export const Navbar = memo(function Navbar({
     setMsg("");
     if (!email || !password) { setMsg("请填写邮箱和密码"); return; }
     setLoading(true);
-    const result = onSignUp ? await onSignUp(email, password) : { error: "注册功能不可用" };
+    const result = await signUp(email, password);
     setLoading(false);
     if (result.error) setMsg(result.error);
     else setMsg("注册成功！请到邮箱完成验证后登录。");
@@ -102,9 +90,9 @@ export const Navbar = memo(function Navbar({
 
           {/* Right: Login or Logout */}
           <div className="flex items-center gap-2 shrink-0 relative">
-            {isLoggedIn && userEmail ? (
+            {isLoggedIn && user?.email ? (
               <>
-                <span className="text-xs text-gray-500 dark:text-gray-400 hidden lg:inline truncate max-w-[120px]">{userEmail}</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 hidden lg:inline truncate max-w-[120px]">{user.email}</span>
                 <button
                   onClick={async () => {
                     setLoggingOut(true);
@@ -157,7 +145,7 @@ export const Navbar = memo(function Navbar({
                         <Input value={anonKey} onChange={(e) => setAnonKey(e.target.value)} placeholder="eyJhbGciOiJIUzI1NiIs..." className="mb-3" />
                         <div className="flex gap-2">
                           <Button onClick={handleSaveConfig} className="flex-1">保存配置</Button>
-                          <Button variant="outline" onClick={() => { if (onClearConfig) { onClearConfig(); } setUrl(""); setAnonKey(""); setMsg("配置已清除"); }} className="flex-1">清除</Button>
+                          <Button variant="outline" onClick={() => { clearConfig(); setUrl(""); setAnonKey(""); setMsg("配置已清除"); }} className="flex-1">清除</Button>
                         </div>
                       </div>
 
