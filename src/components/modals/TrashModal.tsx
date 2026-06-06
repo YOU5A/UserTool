@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { RefreshCw, Trash2 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
@@ -5,7 +6,7 @@ import { useAppStore } from "@/store/useAppStore";
 import { useVIPManager } from "@/hooks/useVIPManager";
 import { formatDateTime } from "@/lib/utils";
 
-export function TrashModal() {
+export const TrashModal = memo(function TrashModal() {
   const store = useAppStore();
   const { mgr, rerender } = useVIPManager();
   const trashUsers = mgr.getTrashUsers();
@@ -72,4 +73,4 @@ export function TrashModal() {
       </DialogContent>
     </Dialog>
   );
-}
+});

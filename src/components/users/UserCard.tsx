@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Plus, Minus, Star, MoreVertical, CreditCard, Trash2, Eye } from "lucide-react";
+import { Plus, Minus, Star, MoreVertical, CreditCard, Trash2, Eye, Pencil, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import type { User } from "@/types";
+import { useVIPManager } from "@/hooks/useVIPManager";
 import { formatAmount, formatDate, getOperationText } from "@/lib/utils";
 
 interface UserCardProps {
@@ -16,7 +17,11 @@ interface UserCardProps {
 export const UserCard = React.memo(function UserCard({
   user, onAddAmount, onSubtractAmount, onTogglePin, onShowOptions, onClick,
 }: UserCardProps) {
+  const { mgr, rerender } = useVIPManager();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [editingCardNo, setEditingCardNo] = useState(false);
+  const [cardNoValue, setCardNoValue] = useState("");
+  const [cardNoError, setCardNoError] = useState("");
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -80,11 +85,51 @@ export const UserCard = React.memo(function UserCard({
                 {user.phone || `尾号 ${user.tail}`}
                  {user.remark && <span className="text-sm font-normal text-gray-400 dark:text-gray-500 ml-1">{user.remark}</span>}
               </h3>
-              {user.cardNo && (
+              {/* 会员卡号 - 内联编辑 */}
+              <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                {editingCardNo ? (
+                  <div className="flex items-center gap-1">
+                    <input
+                      value={cardNoValue}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, "").slice(0, 4);
+                        setCardNoValue(digits);
+                        setCardNoError("");
+                      }}
+                      onKeyDown={(e) => { if (e.key === "Enter") {
+                        let n = cardNoValue.replace(/\D/g, "").slice(0, 4);
+                        if (n) n = n.padStart(4, "0");
+                        if (mgr.updateUserInfo(user.id, { cardNo: n })) { rerender(); setEditingCardNo(false); setCardNoError(""); }
+                        else { setCardNoError("卡号已存在或格式无效"); }
+                      }}}
+                      className="w-16 px-1.5 py-0.5 text-xs bg-white dark:bg-gray-800 rounded border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-900 dark:text-gray-100"
+                      placeholder="0001"
+                      maxLength={4}
+                      inputMode="numeric"
+                      autoFocus
+                    />
+                    <button onClick={(e) => { e.stopPropagation(); let n = cardNoValue.replace(/\D/g, "").slice(0, 4); if (n) n = n.padStart(4, "0"); if (mgr.updateUserInfo(user.id, { cardNo: n })) { rerender(); setEditingCardNo(false); setCardNoError(""); } else { setCardNoError("卡号已存在或格式无效"); } }} className="p-1 rounded bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/60 transition-colors"><Check size={12} /></button>
+                    <button onClick={(e) => { e.stopPropagation(); setEditingCardNo(false); setCardNoError(""); }} className="p-1 rounded bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"><X size={12} /></button>
+                  </div>
+                ) : (
+                  <>
+                    {user.cardNo ? (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-xs font-medium text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800 shrink-0">
                   <CreditCard size={12} />{user.cardNo}
                 </span>
-              )}
+                    ) : (
+                      <span className="text-xs text-gray-400 dark:text-gray-500 italic">无卡号</span>
+                    )}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setCardNoValue(user.cardNo || ""); setEditingCardNo(true); }}
+                      className="p-0.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-primary transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                    >
+                      <Pencil size={12} />
+                    </button>
+                  </>
+                )}
+                {cardNoError && <span className="text-danger text-xs ml-1">{cardNoError}</span>}
+              </div>
             </div>
             {isOldUser && <p className="text-xs text-gray-500 dark:text-gray-400">旧用户</p>}
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">创建于{formatDate(user.created)}</p>

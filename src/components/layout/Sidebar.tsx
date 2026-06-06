@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { RefreshCw, Settings, Users, BarChart2, Trash2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useAppStore } from "@/store/useAppStore";
@@ -11,7 +12,7 @@ interface SidebarProps {
   onClearRecent: () => void;
 }
 
-export function Sidebar({ onRefresh, onSettings, onUserClick, onClearRecent }: SidebarProps) {
+export const Sidebar = memo(function Sidebar({ onRefresh, onSettings, onUserClick, onClearRecent }: SidebarProps) {
   const { activeView, setActiveView } = useAppStore();
   const dataVersion = useAppStore((s) => s.dataVersion);
   const { mgr } = useVIPManager();
@@ -101,4 +102,4 @@ export function Sidebar({ onRefresh, onSettings, onUserClick, onClearRecent }: S
       </div>
     </aside>
   );
-}
+});

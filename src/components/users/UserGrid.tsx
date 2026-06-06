@@ -135,6 +135,7 @@ export function UserGrid() {
     { value: "high", label: "高余额 (>300)" },
     { value: "medium", label: "中等余额 (100-300)" },
     { value: "low", label: "低余额 (<100)" },
+    { value: "negative", label: "欠费用户 (<0)" },
   ];
 
   return (

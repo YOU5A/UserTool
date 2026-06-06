@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import { createVIPManager, type VIPManagerInstance } from "@/lib/vip-manager";
 import { useAppStore } from "@/store/useAppStore";
 
@@ -17,10 +17,6 @@ export function useVIPManager() {
     bumpDataVersion();
     forceUpdate((n) => n + 1);
   }, [bumpDataVersion]);
-
-  useEffect(() => {
-    rerender();
-  }, [rerender]);
 
   return { mgr: mgr.current, rerender };
 }

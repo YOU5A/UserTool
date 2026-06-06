@@ -1,4 +1,5 @@
 ﻿import { useState } from "react";
+import { memo } from "react";
 import { Search, PlusCircle, LogOut, LogIn, X, UserPlus, WifiOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -18,7 +19,7 @@ interface NavbarProps {
   onSignUp?: (email: string, password: string) => Promise<{ error: string | null }>;
 }
 
-export function Navbar({
+export const Navbar = memo(function Navbar({
   searchQuery,
   onSearchChange,
   onAddUser,
@@ -193,4 +194,4 @@ export function Navbar({
       </div>
     </nav>
   );
-}
+});

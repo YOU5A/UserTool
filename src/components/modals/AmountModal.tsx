@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, memo } from "react";
 import { Dialog, DialogContent } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -10,7 +10,7 @@ interface AmountModalProps {
   type: "add" | "subtract";
 }
 
-export function AmountModal({ type }: AmountModalProps) {
+export const AmountModal = memo(function AmountModal({ type }: AmountModalProps) {
   const store = useAppStore();
   const { mgr, rerender } = useVIPManager();
   const [amount, setAmount] = useState("");
@@ -73,4 +73,4 @@ export function AmountModal({ type }: AmountModalProps) {
       </DialogContent>
     </Dialog>
   );
-}
+});

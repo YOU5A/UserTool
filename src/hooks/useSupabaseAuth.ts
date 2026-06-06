@@ -46,13 +46,13 @@ export function useSupabaseAuth() {
 
   const doPull = useCallback(async (client: ReturnType<typeof initSupabaseClient>, ownerId: string) => {
     if (!client) return;
-    console.log("[useSupabaseAuth] doPull starting for ownerId:", ownerId);
+    if (import.meta.env.DEV) { console.log("[useSupabaseAuth] doPull starting for ownerId:", ownerId); }
     const rows = await fetchAllUserData(client, ownerId);
-    console.log("[useSupabaseAuth] fetchAllUserData done, rows:", rows.length);
+    if (import.meta.env.DEV) { console.log("[useSupabaseAuth] fetchAllUserData done, rows:", rows.length); }
     await mgr.replaceAllFromCloud(rows);
-    console.log("[useSupabaseAuth] replaceAllFromCloud done");
+    if (import.meta.env.DEV) { console.log("[useSupabaseAuth] replaceAllFromCloud done"); }
     bumpDataVersion();
-  }, [bumpDataVersion]);
+  }, []);
 
   const pullFromCloud = useCallback(async () => {
     const client = getSupabaseClient();
@@ -61,7 +61,7 @@ export function useSupabaseAuth() {
     try {
       await doPull(client, authUserRef.current.id);
     } catch (e) {
-      console.error("[pullFromCloud] error:", e);
+      if (import.meta.env.DEV) { console.error("[pullFromCloud] error:", e); }
     }
   }, [doPull]);
 
@@ -72,7 +72,7 @@ export function useSupabaseAuth() {
     const changedIds = mgr.getChangedUserIdsAndClear();
     if (changedIds.length === 0) return;
 
-    console.log("[useSupabaseAuth] doPush, changedIds:", changedIds.length);
+    if (import.meta.env.DEV) { console.log("[useSupabaseAuth] doPush, changedIds:", changedIds.length); }
 
     // 检查是否全删标志
     if (changedIds.length > 10 && Object.keys(mgr.state.users).length === 0) {
@@ -99,7 +99,7 @@ export function useSupabaseAuth() {
     for (const id of toDelete) {
       await deleteUserData(client, ownerId, id);
     }
-  }, []);
+  }, [mgr]);
 
   // ---- Schedule push (debounced) ----
 
@@ -128,11 +128,11 @@ export function useSupabaseAuth() {
 
   useEffect(() => {
     let mounted = true;
-    console.log("[useSupabaseAuth] init effect running");
+    if (import.meta.env.DEV) { console.log("[useSupabaseAuth] init effect running"); }
 
     const client = initSupabaseClient();
     if (!client) {
-      console.log("[useSupabaseAuth] no config, offline mode");
+      if (import.meta.env.DEV) { console.log("[useSupabaseAuth] no config, offline mode"); }
       setAuth({ isConfigured: false, isLoggedIn: false, user: null, session: null, loading: false, error: null });
       return;
     }
@@ -142,18 +142,18 @@ export function useSupabaseAuth() {
       data: { subscription },
     } = client.auth.onAuthStateChange(
       async (event, session) => {
-        console.log("[useSupabaseAuth] onAuthStateChange:", event, !!session?.user);
+        if (import.meta.env.DEV) { console.log("[useSupabaseAuth] onAuthStateChange:", event, !!session?.user); }
         if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session?.user) {
           if (!mounted) return;
           try {
-            console.log("[useSupabaseAuth] init + pull for userId:", session.user.id);
+            if (import.meta.env.DEV) { console.log("[useSupabaseAuth] init + pull for userId:", session.user.id); }
             await mgr.init(session.user.id);
             const rows = await fetchAllUserData(client, session.user.id);
             await mgr.replaceAllFromCloud(rows);
             setupRealtime(client, session.user.id);
             bumpDataVersion();
           } catch (e) {
-            console.error("[useSupabaseAuth] init failed:", e);
+            if (import.meta.env.DEV) { console.error("[useSupabaseAuth] init failed:", e); }
             if (mounted) setAuth(s => ({ ...s, loading: false, error: String(e) }));
           }
           if (mounted) {
@@ -221,7 +221,7 @@ export function useSupabaseAuth() {
   const signIn = useCallback(async (email: string, password: string) => {
     const client = getSupabaseClient() || initSupabaseClient();
     if (!client) {
-      console.error("[useSupabaseAuth] signIn: cannot init client");
+      if (import.meta.env.DEV) { console.error("[useSupabaseAuth] signIn: cannot init client"); }
       return { error: "未能初始化 Supabase" };
     }
     const { data, error } = await client.auth.signInWithPassword({ email, password });
@@ -237,7 +237,7 @@ export function useSupabaseAuth() {
   const signUp = useCallback(async (email: string, password: string) => {
     const client = getSupabaseClient() || initSupabaseClient();
     if (!client) {
-      console.error("[useSupabaseAuth] signUp: cannot init client");
+      if (import.meta.env.DEV) { console.error("[useSupabaseAuth] signUp: cannot init client"); }
       return { error: "未能初始化 Supabase" };
     }
     const { data, error } = await client.auth.signUp({ email, password });
@@ -251,7 +251,7 @@ export function useSupabaseAuth() {
   }, [bumpDataVersion]);
 
   const signOut = useCallback(async () => {
-    console.log("[useSupabaseAuth] signOut called");
+    if (import.meta.env.DEV) { console.log("[useSupabaseAuth] signOut called"); }
     try {
       const client = getSupabaseClient();
       const currentUser = authUserRef.current;
@@ -272,7 +272,7 @@ export function useSupabaseAuth() {
       await m.init("local_offline");
       bumpDataVersion();
     } catch (e) {
-      console.error("[useSupabaseAuth] signOut error:", e);
+      if (import.meta.env.DEV) { console.error("[useSupabaseAuth] signOut error:", e); }
     }
   }, [doPush, bumpDataVersion]);
 

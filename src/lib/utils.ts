@@ -1,3 +1,4 @@
+import type { HistoryRecord } from "@/types";
 export function formatAmount(amount: number | string, _currency?: string): string {
   const num = Number(amount ?? 0);
   return `\u00a5${num.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -46,7 +47,7 @@ export function formatDateTime(dateStr: string): string {
   }
 }
 
-export function getOperationText(type: string, amount: number): string {
+export function getOperationText(type: HistoryRecord["type"], amount: number): string {
   return type === "add" ? `充值 ${formatAmount(amount)}` : `消费 ${formatAmount(amount)}`;
 }
 

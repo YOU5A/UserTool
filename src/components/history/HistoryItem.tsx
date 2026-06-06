@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Pencil, Trash2, Plus, Minus } from "lucide-react";
 import { useAppStore } from "@/store/useAppStore";
 import { formatDate, getOperationText } from "@/lib/utils";
@@ -8,7 +9,7 @@ interface HistoryItemProps {
   userId: string;
 }
 
-export function HistoryItem({ record, userId }: HistoryItemProps) {
+export const HistoryItem = memo(function HistoryItem({ record, userId }: HistoryItemProps) {
   const store = useAppStore();
   const isAdd = record.type === "add";
 
@@ -50,4 +51,4 @@ export function HistoryItem({ record, userId }: HistoryItemProps) {
       </div>
     </div>
   );
-}
+});

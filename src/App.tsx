@@ -5,7 +5,6 @@ import { UserDetail } from "@/components/users/UserDetail";
 import { UserForm } from "@/components/users/UserForm";
 import { AmountModal } from "@/components/modals/AmountModal";
 import { EditHistoryModal, DeleteHistoryModal, DeleteUserModal } from "@/components/modals/EditDeleteModals";
-import { SettingsModal } from "@/components/modals/SettingsModal";
 import { TrashModal } from "@/components/modals/TrashModal";
 import { LogsModal } from "@/components/modals/LogsModal";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
@@ -14,11 +13,20 @@ import { useVIPManager } from "@/hooks/useVIPManager";
 import { useSupabaseAuth } from "@/hooks/useSupabaseAuth";
 
 const StatsModal = lazy(() => import("@/components/modals/StatsModal").then(m => ({ default: m.StatsModal })));
+const SettingsModal = lazy(() => import("@/components/modals/SettingsModal").then(m => ({ default: m.SettingsModal })));
 
 function StatsLazy() {
   return (
     <Suspense fallback={null}>
       <StatsModal />
+    </Suspense>
+  );
+}
+
+function SettingsLazy() {
+  return (
+    <Suspense fallback={null}>
+      <SettingsModal />
     </Suspense>
   );
 }
@@ -45,7 +53,7 @@ export default function App() {
         }
         initDone.current = true;
       } catch (e) {
-        console.warn("Init failed:", e);
+        if (import.meta.env.DEV) { console.warn("Init failed:", e); }
       }
     })();
   }, [auth.loading, auth.isLoggedIn]);
@@ -89,7 +97,7 @@ export default function App() {
       try {
         await auth.pullFromCloud();
       } catch (e) {
-        console.error("[App] pullFromCloud failed:", e);
+        if (import.meta.env.DEV) { console.error("[App] pullFromCloud failed:", e); }
       }
     }
     rerender();
@@ -143,7 +151,7 @@ export default function App() {
       <EditHistoryModal />
       <DeleteHistoryModal />
       <DeleteUserModal />
-      <SettingsModal />
+      <SettingsLazy />
       <TrashModal />
       <LogsModal />
       <StatsLazy />

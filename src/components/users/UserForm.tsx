@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, memo } from "react";
+import { Pencil, Check, X } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { useAppStore } from "@/store/useAppStore";
 import { useVIPManager } from "@/hooks/useVIPManager";
 
-export function UserForm() {
+export const UserForm = memo(function UserForm() {
   const store = useAppStore();
   const { mgr, rerender } = useVIPManager();
   const [isNewUser, setIsNewUser] = useState(true);
@@ -14,7 +15,12 @@ export function UserForm() {
   const [initialAmount, setInitialAmount] = useState("0");
   const [remark, setRemark] = useState("");
   const [cardNo, setCardNo] = useState("");
+  const [editingCardNo, setEditingCardNo] = useState(false);
   const [error, setError] = useState("");
+
+  const saveFormCardNo = () => {
+    setEditingCardNo(false);
+  };
 
   const onClose = () => {
     store.closeModal("addUser");
@@ -83,19 +89,31 @@ export function UserForm() {
             <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">
               会员卡号 <span className="text-xs text-gray-400 font-normal">(4位数字)</span>
             </label>
-            <Input
-              value={cardNo}
-              onChange={(e) => {
-                const raw = e.target.value.replace(/\D/g, "");
-                const digits = raw.slice(0, 4);
-                // Live pad to 4 digits as user types
-                setCardNo(digits.padStart(4, "0"));
-              }}
-              placeholder="0001"
-              maxLength={4}
-              inputMode="numeric"
-              pattern="\d*"
-            />
+            {editingCardNo ? (
+              <div className="flex items-center gap-2">
+                <input
+                  value={cardNo}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, "").slice(0, 4);
+                    setCardNo(digits);
+                  }}
+                  onKeyDown={(e) => e.key === "Enter" && saveFormCardNo()}
+                  className="flex-1 px-3 py-2 text-sm bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/50 text-gray-900 dark:text-gray-100"
+                  placeholder="0001"
+                  maxLength={4}
+                  inputMode="numeric"
+                  pattern="\d*"
+                  autoFocus
+                />
+                <button onClick={saveFormCardNo} className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/60 transition-colors"><Check size={16} /></button>
+                <button onClick={() => { setEditingCardNo(false); setCardNo(""); }} className="p-2 rounded-lg bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors"><X size={16} /></button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between px-3 py-2 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                <span className="text-sm text-gray-900 dark:text-gray-100">{cardNo || "未设置"}</span>
+                <button onClick={() => setEditingCardNo(true)} className="text-gray-400 hover:text-primary transition-colors p-1"><Pencil size={14} /></button>
+              </div>
+            )}
           </div>
           {error && <p className="text-danger text-sm">{error}</p>}
           <div className="flex justify-end gap-3 pt-2">
@@ -106,4 +124,4 @@ export function UserForm() {
       </DialogContent>
     </Dialog>
   );
-}
+});

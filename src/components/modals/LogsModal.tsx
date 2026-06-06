@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { useAppStore } from "@/store/useAppStore";
 import { useVIPManager } from "@/hooks/useVIPManager";
-import { useState, useMemo } from "react";
+import { useState, useMemo, memo } from "react";
 
-export function LogsModal() {
+export const LogsModal = memo(function LogsModal() {
   const store = useAppStore();
   const { mgr, rerender } = useVIPManager();
   const [typeFilter, setTypeFilter] = useState("all");
@@ -76,4 +76,4 @@ export function LogsModal() {
       </DialogContent>
     </Dialog>
   );
-}
+});

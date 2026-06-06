@@ -38,7 +38,7 @@ export function DialogContent({ className, children, onClose }: {
           <X size={18} />
         </button>
       )}
-      <div className="px-5 pt-10 pb-5">
+      <div className="px-3 sm:px-5 pt-8 sm:pt-10 pb-3 sm:pb-5">
         {children}
       </div>
     </div>

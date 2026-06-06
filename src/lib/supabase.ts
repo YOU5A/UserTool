@@ -1,7 +1,7 @@
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+﻿import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { User } from "@/types";
 import type { CloudDataRow } from "./vip-manager";
-import { cookieStorage } from "./auth-storage";
+import { cookieStorage, getConfigCookie, setConfigCookie, removeConfigCookie } from "./auth-storage";
 
 let supabaseClient: SupabaseClient | null = null;
 
@@ -9,8 +9,12 @@ const STORAGE_KEY_URL = "sb_project_url";
 const STORAGE_KEY_ANON = "sb_anon_key";
 
 export function getSupabaseConfig(): { url: string; anonKey: string } | null {
-  const url = localStorage.getItem(STORAGE_KEY_URL);
-  const anonKey = localStorage.getItem(STORAGE_KEY_ANON);
+  // 优先从 localStorage 读取
+  let url = localStorage.getItem(STORAGE_KEY_URL);
+  let anonKey = localStorage.getItem(STORAGE_KEY_ANON);
+  // 回退到 cookie（WebView 环境下 localStorage 刷新可能丢失）
+  if (!url) url = getConfigCookie(STORAGE_KEY_URL);
+  if (!anonKey) anonKey = getConfigCookie(STORAGE_KEY_ANON);
   if (url && anonKey) return { url, anonKey };
   return null;
 }
@@ -18,11 +22,17 @@ export function getSupabaseConfig(): { url: string; anonKey: string } | null {
 export function saveSupabaseConfig(url: string, anonKey: string): void {
   localStorage.setItem(STORAGE_KEY_URL, url);
   localStorage.setItem(STORAGE_KEY_ANON, anonKey);
+  // 同时写 cookie 备份（localStorage 丢失时回退）
+  setConfigCookie(STORAGE_KEY_URL, url);
+  setConfigCookie(STORAGE_KEY_ANON, anonKey);
 }
 
 export function clearSupabaseConfig(): void {
   localStorage.removeItem(STORAGE_KEY_URL);
   localStorage.removeItem(STORAGE_KEY_ANON);
+  // 同时清除 cookie 备份
+  removeConfigCookie(STORAGE_KEY_URL);
+  removeConfigCookie(STORAGE_KEY_ANON);
   supabaseClient = null;
 }
 
@@ -46,9 +56,9 @@ export function resetSupabaseClient(): void {
   supabaseClient = null;
 }
 
-// ─── Cloud Data Operations ───────────────────────────────────
+// ---- Cloud Data Operations ----
 
-/** 拉取当前 owner 的全量用户数据 */
+/** 拉取当前 owner 的全部用户数据 */
 export async function fetchAllUserData(
   client: SupabaseClient,
   ownerId: string
@@ -69,7 +79,7 @@ export async function fetchAllUserData(
       if (firstPage) {
         throw new Error("[fetchAllUserData] first page query failed: " + JSON.stringify(error));
       }
-      console.warn("[fetchAllUserData] subsequent page error, stopping", error);
+      if (import.meta.env.DEV) { console.warn("[fetchAllUserData] subsequent page error, stopping", error); }
       break;
     }
     if (data && data.length > 0) {
@@ -106,14 +116,14 @@ export async function pushUsersBatch(
       .upsert(batch, { onConflict: "owner_id,user_id" });
 
     if (error) {
-      console.warn("[pushUsersBatch] batch upsert error", error);
+      if (import.meta.env.DEV) { console.warn("[pushUsersBatch] batch upsert error", error); }
       return false;
     }
   }
   return true;
 }
 
-/** 条件推送单条：本地 __ts > 远端 updated_at 才写入 */
+/** 条件推送单条：本地 __ts > 远程 updated_at 才写入 */
 export async function upsertUserData(
   client: SupabaseClient,
   ownerId: string,
@@ -129,7 +139,7 @@ export async function upsertUserData(
     .maybeSingle();
 
   if (fetchErr) {
-    console.warn("[upsertUserData] fetch error", fetchErr);
+    if (import.meta.env.DEV) { console.warn("[upsertUserData] fetch error", fetchErr); }
     return { pushed: false };
   }
 
@@ -153,7 +163,7 @@ export async function upsertUserData(
     );
 
   if (error) {
-    console.warn("[upsertUserData] upsert error", error);
+    if (import.meta.env.DEV) { console.warn("[upsertUserData] upsert error", error); }
     return { pushed: false };
   }
   return { pushed: true };
@@ -170,7 +180,7 @@ export async function deleteAllUserData(
     .eq("owner_id", ownerId);
 
   if (error) {
-    console.warn("[deleteAllUserData]", error);
+    if (import.meta.env.DEV) { console.warn("[deleteAllUserData]", error); }
     return false;
   }
   return true;
@@ -189,7 +199,7 @@ export async function deleteUserData(
     .eq("user_id", userId);
 
   if (error) {
-    console.warn("[deleteUserData]", error);
+    if (import.meta.env.DEV) { console.warn("[deleteUserData]", error); }
     return false;
   }
   return true;

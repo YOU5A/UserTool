@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, memo } from "react";
 import { Dialog, DialogContent } from "@/components/ui/Dialog";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -7,7 +7,7 @@ import { Select } from "@/components/ui/Select";
 import { useAppStore } from "@/store/useAppStore";
 import { useVIPManager } from "@/hooks/useVIPManager";
 
-export function EditHistoryModal() {
+export const EditHistoryModal = memo(function EditHistoryModal() {
   const store = useAppStore();
   const { mgr, rerender } = useVIPManager();
   const userId = store.currentUserId;
@@ -57,9 +57,9 @@ export function EditHistoryModal() {
       </DialogContent>
     </Dialog>
   );
-}
+});
 
-export function DeleteHistoryModal() {
+export const DeleteHistoryModal = memo(function DeleteHistoryModal() {
   const store = useAppStore();
   const { mgr, rerender } = useVIPManager();
   const onClose = () => store.closeModal("deleteHistory");
@@ -82,9 +82,9 @@ export function DeleteHistoryModal() {
       </DialogContent>
     </Dialog>
   );
-}
+});
 
-export function DeleteUserModal() {
+export const DeleteUserModal = memo(function DeleteUserModal() {
   const store = useAppStore();
   const { mgr, rerender } = useVIPManager();
   const user = store.currentUserId ? mgr.getUser(store.currentUserId) : null;
@@ -110,4 +110,4 @@ export function DeleteUserModal() {
       </DialogContent>
     </Dialog>
   );
-}
+});

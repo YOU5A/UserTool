@@ -90,7 +90,7 @@ export function createVIPManager(): VIPManagerInstance {
         await db.users.delete(userId);
       }
     } catch (e) {
-      console.warn("[saveUserToDb]", e);
+      if (import.meta.env.DEV) { console.warn("[saveUserToDb]", e); }
     }
   }
 
@@ -104,7 +104,7 @@ export function createVIPManager(): VIPManagerInstance {
         { key: "sync_state", value: state.syncState },
       ]);
     } catch (e) {
-      console.warn("[saveMetaToDb]", e);
+      if (import.meta.env.DEV) { console.warn("[saveMetaToDb]", e); }
     }
   }
 
@@ -151,7 +151,7 @@ export function createVIPManager(): VIPManagerInstance {
       localStorage.removeItem("vipManagerTrash");
       localStorage.removeItem("vipManagerLogs");
     } catch (e) {
-      console.warn("[migrate]", e);
+      if (import.meta.env.DEV) { console.warn("[migrate]", e); }
     }
   }
 
@@ -220,7 +220,7 @@ export function createVIPManager(): VIPManagerInstance {
         ]);
       });
     } catch (e) {
-      console.error("[replaceAllFromCloud]", e);
+      if (import.meta.env.DEV) { console.error("[replaceAllFromCloud]", e); }
     }
   }
 
@@ -515,6 +515,10 @@ export function createVIPManager(): VIPManagerInstance {
     switch (filter) {
       case "card": return base.filter(u => u.cardNo && u.cardNo !== "0000");
       case "pinned": return base.filter(u => u.pinned);
+      case "negative": return base.filter(u => u.amount < 0);
+      case "high": return base.filter(u => u.amount > 300);
+      case "medium": return base.filter(u => u.amount >= 100 && u.amount <= 300);
+      case "low": return base.filter(u => u.amount >= 0 && u.amount < 100);
       default: return base;
     }
   }
@@ -545,48 +549,77 @@ export function createVIPManager(): VIPManagerInstance {
 
   // ---- Stats ----
 
-  function getStatsData(startDate: string, endDate: string): StatsData {
+﻿  function getStatsData(startDate: string, endDate: string): StatsData {
+    const pad2 = (n: number) => String(n).padStart(2, '0');
+    const toLocalDate = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+
     const allUsers = getAllUsers();
     const totalUsers = allUsers.length;
     let totalAmount = 0;
     let activeUsers = 0;
-    const today = new Date().toISOString().slice(0, 10);
+    const now = new Date();
+    const today = toLocalDate(now);
     let todayRecharge = 0;
     let todayConsumption = 0;
     let weekRecharge = 0;
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    const consumptionMap = new Map<string, number>();
+    const weekAgo = toLocalDate(new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000));
+    const dailyConsumption = new Map<string, number>();
+    const dailyNetChange = new Map<string, number>();
 
-    const start = new Date(startDate);
-    const end = new Date(endDate);
+    const start = new Date(startDate + "T00:00:00");
+    const end = new Date(endDate + "T00:00:00");
+    end.setDate(end.getDate() + 1);
+
+    for (let d = new Date(start); d < end; d.setDate(d.getDate() + 1)) {
+      const key = toLocalDate(d);
+      dailyConsumption.set(key, 0);
+      dailyNetChange.set(key, 0);
+    }
 
     for (const user of allUsers) {
       totalAmount += user.amount;
       let hasActivity = false;
       for (const h of user.history) {
         const hDate = new Date(h.date);
-        if (hDate >= start && hDate <= end) {
+        if (hDate >= start && hDate < end) {
           hasActivity = true;
+          const dayKey = toLocalDate(hDate);
           if (h.type === "subtract") {
-            const dayKey = h.date.slice(0, 10);
-            consumptionMap.set(dayKey, (consumptionMap.get(dayKey) || 0) + h.amount);
+            dailyConsumption.set(dayKey, (dailyConsumption.get(dayKey) || 0) + h.amount);
+            dailyNetChange.set(dayKey, (dailyNetChange.get(dayKey) || 0) - h.amount);
+          } else if (h.type === "add") {
+            dailyNetChange.set(dayKey, (dailyNetChange.get(dayKey) || 0) + h.amount);
           }
         }
+        const hDayKey = toLocalDate(hDate);
         if (h.type === "add") {
-          const dayKey = h.date.slice(0, 10);
-          if (dayKey === today) todayRecharge += h.amount;
-          if (h.date >= weekAgo) weekRecharge += h.amount;
+          if (hDayKey === today) todayRecharge += h.amount;
+          if (hDayKey >= weekAgo && hDayKey <= today) weekRecharge += h.amount;
         }
-        if (h.type === "subtract" && h.date.slice(0, 10) === today) {
+        if (h.type === "subtract" && hDayKey === today) {
           todayConsumption += h.amount;
         }
       }
       if (hasActivity) activeUsers++;
     }
 
-    const consumptionTrend = Array.from(consumptionMap.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, amount]) => ({ date, amount, balance: 0 }));
+    let initialBalance = totalAmount;
+    for (const change of dailyNetChange.values()) {
+      initialBalance -= change;
+    }
+
+    const consumptionTrend = Array.from(dailyNetChange.keys())
+      .sort()
+      .map((date) => {
+        const amount = dailyConsumption.get(date) || 0;
+        return { date, amount, balance: initialBalance };
+      });
+
+    let runningBalance = initialBalance;
+    for (const item of consumptionTrend) {
+      runningBalance += (dailyNetChange.get(item.date) || 0);
+      item.balance = runningBalance;
+    }
 
     return {
       totalUsers,
@@ -739,7 +772,7 @@ export function createVIPManager(): VIPManagerInstance {
         ]);
       });
     } catch (e) {
-      console.error("[deleteAllUsers]", e);
+      if (import.meta.env.DEV) { console.error("[deleteAllUsers]", e); }
       changedUserIds.clear();
       return 0;
     }
