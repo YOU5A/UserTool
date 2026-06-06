@@ -40,21 +40,22 @@ export function removeConfigCookie(key: string): void {
 
 export const cookieStorage = {
   getItem(key: string): Promise<string | null> {
-    // key 形如 "sb-xxxxx-auth-token"，我们用 cookie 前缀简化
     const cookieName = COOKIE_PREFIX + key;
     try {
-      // 优先从 cookie 读取
-      const value = getCookie(cookieName);
-      if (value !== null) return Promise.resolve(value);
-      // 回退到 localStorage（双重保障：cookie 丢失时仍可从 localStorage 恢复）
+      // localStorage 为主（更可靠，无 4KB 限制）
       try {
         const localValue = localStorage.getItem(key);
         if (localValue !== null) {
-          // localStorage 有值但 cookie 丢失，自动修复 cookie
-          setCookie(cookieName, localValue, 30 * 24 * 60 * 60);
+          // 同步修复 cookie 备份
+          if (!getCookie(cookieName)) {
+            setCookie(cookieName, localValue, 30 * 24 * 60 * 60);
+          }
           return Promise.resolve(localValue);
         }
       } catch { /* ignore localStorage errors */ }
+      // 回退 cookie
+      const cookieValue = getCookie(cookieName);
+      if (cookieValue !== null) return Promise.resolve(cookieValue);
       return Promise.resolve(null);
     } catch {
       return Promise.resolve(null);
@@ -64,13 +65,14 @@ export const cookieStorage = {
   setItem(key: string, value: string): Promise<void> {
     const cookieName = COOKIE_PREFIX + key;
     try {
-      // Supabase session token 默认过期时间很长（refresh token 可能有 30 天）
-      // 设置 cookie 30 天过期
-      setCookie(cookieName, value, 30 * 24 * 60 * 60);
-      // 同时写一份到 localStorage 做双重保障
+      // localStorage 为主（更可靠，无容量限制）
       try {
         localStorage.setItem(key, value);
       } catch { /* ignore localStorage errors */ }
+      // cookie 作为备份
+      try {
+        setCookie(cookieName, value, 30 * 24 * 60 * 60);
+      } catch { /* ignore cookie errors, localStorage already has it */ }
       return Promise.resolve();
     } catch (e) {
       return Promise.reject(e);
