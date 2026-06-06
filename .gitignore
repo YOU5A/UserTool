@@ -1,7 +1,10 @@
-node_modules/
+﻿node_modules/
 dist/
 *.tsbuildinfo
 .env
 .env.local
 .env.*.local
 会员充值.xlsx
+import_data.json
+vite_err.txt
+vite_out.txt
