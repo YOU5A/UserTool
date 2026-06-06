@@ -6,6 +6,7 @@ import {
   getSupabaseConfig,
   saveSupabaseConfig,
   clearSupabaseConfig,
+  resetSupabaseClient,
   subscribeToChanges,
   fetchAllUserData,
   pushUsersBatch,
@@ -219,36 +220,46 @@ export function useSupabaseAuth() {
   // ---- Auth actions ----
 
   const signIn = useCallback(async (email: string, password: string) => {
-    const client = getSupabaseClient() || initSupabaseClient();
-    if (!client) {
-      if (import.meta.env.DEV) { console.error("[useSupabaseAuth] signIn: cannot init client"); }
-      return { error: "未能初始化 Supabase" };
+    try {
+      const client = getSupabaseClient() || initSupabaseClient();
+      if (!client) return { error: "未能初始化 Supabase" };
+      const { data, error } = await client.auth.signInWithPassword({ email, password });
+      if (error) return { error: error.message };
+      if (data?.user) {
+        setAuth(s => ({ ...s, isLoggedIn: true, user: data.user!, session: data.session, error: null, loading: false }));
+        authUserRef.current = data.user;
+        await mgr.init(data.user.id);
+        await doPull(client, data.user.id);
+        setupRealtime(client, data.user.id);
+        bumpDataVersion();
+      }
+      return { error: null };
+    } catch (e) {
+      if (import.meta.env.DEV) { console.error("[useSupabaseAuth] signIn error:", e); }
+      return { error: e instanceof Error ? e.message : "登录请求失败，请检查网络连接" };
     }
-    const { data, error } = await client.auth.signInWithPassword({ email, password });
-    if (error) return { error: error.message };
-    if (data?.user) {
-      setAuth(s => ({ ...s, isLoggedIn: true, user: data.user!, session: data.session, error: null }));
-      authUserRef.current = data.user;
-      bumpDataVersion();
-    }
-    return { error: null };
-  }, [bumpDataVersion]);
+  }, [bumpDataVersion, doPull, setupRealtime, mgr]);
 
   const signUp = useCallback(async (email: string, password: string) => {
-    const client = getSupabaseClient() || initSupabaseClient();
-    if (!client) {
-      if (import.meta.env.DEV) { console.error("[useSupabaseAuth] signUp: cannot init client"); }
-      return { error: "未能初始化 Supabase" };
+    try {
+      const client = getSupabaseClient() || initSupabaseClient();
+      if (!client) return { error: "未能初始化 Supabase" };
+      const { data, error } = await client.auth.signUp({ email, password });
+      if (error) return { error: error.message };
+      if (data?.user && data.session) {
+        setAuth(s => ({ ...s, isLoggedIn: true, user: data.user!, session: data.session, error: null, loading: false }));
+        authUserRef.current = data.user;
+        await mgr.init(data.user.id);
+        await doPull(client, data.user.id);
+        setupRealtime(client, data.user.id);
+        bumpDataVersion();
+      }
+      return { error: null };
+    } catch (e) {
+      if (import.meta.env.DEV) { console.error("[useSupabaseAuth] signUp error:", e); }
+      return { error: e instanceof Error ? e.message : "注册请求失败，请检查网络连接" };
     }
-    const { data, error } = await client.auth.signUp({ email, password });
-    if (error) return { error: error.message };
-    if (data?.user && data.session) {
-      setAuth(s => ({ ...s, isLoggedIn: true, user: data.user!, session: data.session, error: null }));
-      authUserRef.current = data.user;
-      bumpDataVersion();
-    }
-    return { error: null };
-  }, [bumpDataVersion]);
+  }, [bumpDataVersion, doPull, setupRealtime, mgr]);
 
   const signOut = useCallback(async () => {
     if (import.meta.env.DEV) { console.log("[useSupabaseAuth] signOut called"); }
@@ -278,6 +289,7 @@ export function useSupabaseAuth() {
 
   const configureAndSave = useCallback((url: string, anonKey: string) => {
     saveSupabaseConfig(url, anonKey);
+    resetSupabaseClient();
     setAuth(s => ({ ...s, isConfigured: true }));
     return true;
   }, []);
