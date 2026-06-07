@@ -29,6 +29,7 @@ export interface VIPManagerInstance {
   getChangedUserIdsSnapshot(): string[];
   hasPendingChanges(): boolean;
   clearChangedUserIds(): void;
+  markAllUsersAsChanged(): void;
   addNewUser(phone: string, initialAmount: number, remark?: string, cardNo?: string): string | null;
   addOldUser(tail: string, initialAmount: number, remark?: string, cardNo?: string): string | null;
   deleteUser(userId: string): boolean;
@@ -194,6 +195,14 @@ export function createVIPManager(): VIPManagerInstance {
 
   async function replaceAllFromCloud(cloudRows: CloudDataRow[]): Promise<void> {
     if (!db) return;
+
+    // Guard: if cloud is empty but local has data, do not wipe ? mark all for push instead
+    if (cloudRows.length === 0 && Object.keys(state.users).length > 0) {
+      markAllUsersAsChanged();
+      if (import.meta.env.DEV) console.log("[replaceAllFromCloud] cloud empty, local has data ? keeping local, marking all for push");
+      return;
+    }
+
     const newUsers: Record<string, User> = {};
     const newTrash: User[] = [];
 
@@ -802,6 +811,12 @@ export function createVIPManager(): VIPManagerInstance {
     changedUserIds.clear();
   }
 
+  function markAllUsersAsChanged(): void {
+    for (const id of Object.keys(state.users)) {
+      changedUserIds.add(id);
+    }
+  }
+
   return {
     state,
     get db() { return db; },
@@ -812,6 +827,7 @@ export function createVIPManager(): VIPManagerInstance {
     getChangedUserIdsSnapshot,
     hasPendingChanges,
     clearChangedUserIds,
+    markAllUsersAsChanged,
     addNewUser,
     addOldUser,
     deleteUser,

@@ -100,13 +100,18 @@ export async function pushUsersBatch(
       updated_at: now,
     }));
 
-    const { error } = await client
+    const { data, error } = await client
       .from("user_data")
       .upsert(batch, { onConflict: "owner_id,user_id" });
 
     if (error) {
       if (import.meta.env.DEV) { console.warn("[pushUsersBatch] batch upsert error", error); }
       return false;
+    }
+
+    // Log warning if data looks empty (possible RLS block), but don't block
+    if (import.meta.env.DEV && (!Array.isArray(data) || (data as unknown[]).length === 0)) {
+      console.warn("[pushUsersBatch] upsert returned no data rows ? possible RLS block, but push continues");
     }
   }
   return true;

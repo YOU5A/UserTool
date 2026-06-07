@@ -72,6 +72,8 @@ export function SettingsModal() {
       const result = mgr.applyImport(raw, importMode as "overwrite" | "merge");
       setImportStatus("导入完成: " + result.usersImported + " 个用户");
       rerender();
+      // Trigger immediate push to cloud (bypass 1s debounce)
+      store.requestImmediatePush();
     } catch (err) {
       setImportStatus("导入失败: " + err);
     }
