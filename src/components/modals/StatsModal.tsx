@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useMemo, useCallback } from "react";
+import { useState, useRef, useMemo, useCallback } from "react";
 import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS, CategoryScale, LinearScale, PointElement,
@@ -83,16 +83,16 @@ export function StatsModal() {
           <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-3 shrink-0">数据统计</h2>
 
           <div className="flex items-center gap-3 mb-3 flex-wrap shrink-0">
-            <div className="relative flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 shadow-sm hover:border-primary transition-colors select-none">
+            <div onClick={() => startRef.current?.showPicker?.()} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 shadow-sm hover:border-primary transition-colors cursor-pointer select-none">
               <span className="text-sm text-gray-500">从</span>
               <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{startDate}</span>
-              <Input ref={startRef} type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); setPreset(null); }} className="absolute inset-0 opacity-0 cursor-pointer" />
+              <Input ref={startRef} type="date" value={startDate} onChange={(e) => { setStartDate(e.target.value); setPreset(null); }} className="absolute opacity-0 pointer-events-none w-0 h-0" />
             </div>
             <span className="text-gray-500 text-sm">至</span>
-            <div className="relative flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 shadow-sm hover:border-primary transition-colors select-none">
+            <div onClick={() => endRef.current?.showPicker?.()} className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 shadow-sm hover:border-primary transition-colors cursor-pointer select-none">
               <span className="text-sm text-gray-500">至</span>
               <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{endDate}</span>
-              <Input ref={endRef} type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setPreset(null); }} className="absolute inset-0 opacity-0 cursor-pointer" />
+              <Input ref={endRef} type="date" value={endDate} onChange={(e) => { setEndDate(e.target.value); setPreset(null); }} className="absolute opacity-0 pointer-events-none w-0 h-0" />
             </div>
             <div className="flex gap-1 ml-2">
               <Button variant={preset === "default" ? "default" : "outline"} size="sm" onClick={() => applyPreset("default", 3, 4)} className="text-xs">默认</Button>

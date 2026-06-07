@@ -80,13 +80,12 @@ export const UserCard = React.memo(function UserCard({
             {(user.phone || user.tail).slice(0, 2).toUpperCase()}
           </div>
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
               <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 truncate">
                 {user.phone || `尾号 ${user.tail}`}
-                 {user.remark && <span className="text-sm font-normal text-gray-400 dark:text-gray-500 ml-1">{user.remark}</span>}
               </h3>
+              {user.remark && <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{user.remark}</p>}
               {/* 会员卡号 - 内联编辑 */}
-              <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center gap-1 mt-0.5" onClick={(e) => e.stopPropagation()}>
                 {editingCardNo ? (
                   <div className="flex items-center gap-1">
                     <input
@@ -130,7 +129,6 @@ export const UserCard = React.memo(function UserCard({
                 )}
                 {cardNoError && <span className="text-danger text-xs ml-1">{cardNoError}</span>}
               </div>
-            </div>
             {isOldUser && <p className="text-xs text-gray-500 dark:text-gray-400">旧用户</p>}
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">创建于{formatDate(user.created)}</p>
           </div>
