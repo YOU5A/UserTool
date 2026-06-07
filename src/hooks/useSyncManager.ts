@@ -18,6 +18,7 @@ export function useSyncManager() {
 
   const pushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const deferredPullRef = useRef(false);
+  const pushInProgressRef = useRef(false);
   const realtimeUnsubRef = useRef<(() => void) | null>(null);
 
   // ---- Pull from cloud ----
@@ -27,10 +28,10 @@ export function useSyncManager() {
     const currentUser = user;
     if (!client || !currentUser) return;
 
-    // Guard: skip pull if there are pending local changes to avoid overwriting unsynced data
-    if (mgr.hasPendingChanges()) {
+    // Guard: skip pull if a push is in progress or there are pending changes
+    if (pushInProgressRef.current || mgr.hasPendingChanges()) {
       deferredPullRef.current = true;
-      if (import.meta.env.DEV) console.log("[useSyncManager] doPull deferred: pending local changes");
+      if (import.meta.env.DEV) console.log("[useSyncManager] doPull deferred: push in progress or pending changes");
       return;
     }
 
@@ -45,6 +46,9 @@ export function useSyncManager() {
   // ---- Push changed users to cloud ----
 
   const doPush = useCallback(async () => {
+    // Prevent concurrent pushes
+    if (pushInProgressRef.current) return;
+
     const client = getSupabaseClient();
     const currentUser = user;
     if (!client || !currentUser) return;
@@ -52,11 +56,14 @@ export function useSyncManager() {
     const changedIds = mgr.getChangedUserIdsAndClear();
     if (changedIds.length === 0) return;
 
+    pushInProgressRef.current = true;
+
     if (import.meta.env.DEV) console.log("[useSyncManager] doPush, changedIds:", changedIds.length);
 
     // Detect deleteAll scenario
     if (changedIds.length > 10 && Object.keys(mgr.state.users).length === 0) {
       await deleteAllUserData(client, currentUser.id);
+      pushInProgressRef.current = false;
       return;
     }
 
@@ -78,6 +85,8 @@ export function useSyncManager() {
     for (const id of toDelete) {
       await deleteUserData(client, currentUser.id, id);
     }
+
+    pushInProgressRef.current = false;
 
     // After push completes, run deferred pull if one was requested
     if (deferredPullRef.current) {
@@ -103,6 +112,10 @@ export function useSyncManager() {
     if (pushTimerRef.current) {
       clearTimeout(pushTimerRef.current);
       pushTimerRef.current = null;
+    }
+    // Wait for any running push to finish, then do a final push
+    while (pushInProgressRef.current) {
+      await new Promise(r => setTimeout(r, 100));
     }
     await doPush();
   }, [doPush]);
@@ -155,7 +168,11 @@ export function useSyncManager() {
             clearTimeout(pushTimerRef.current);
             pushTimerRef.current = null;
           }
-          doPush();
+          // If a push is already running, changedUserIds will keep the new IDs
+          // and they will be picked up by the next push cycle
+          if (!pushInProgressRef.current) {
+            doPush();
+          }
         }
       }
     });
