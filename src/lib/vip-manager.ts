@@ -26,6 +26,7 @@ export interface VIPManagerInstance {
   loadData(): Promise<void>;
   replaceAllFromCloud(cloudRows: CloudDataRow[]): Promise<void>;
   getChangedUserIdsAndClear(): string[];
+  getChangedUserIdsSnapshot(): string[];
   hasPendingChanges(): boolean;
   clearChangedUserIds(): void;
   addNewUser(phone: string, initialAmount: number, remark?: string, cardNo?: string): string | null;
@@ -230,6 +231,10 @@ export function createVIPManager(): VIPManagerInstance {
     const ids = Array.from(changedUserIds);
     changedUserIds.clear();
     return ids;
+  }
+
+  function getChangedUserIdsSnapshot(): string[] {
+    return Array.from(changedUserIds);
   }
 
   // ---- CRUD ----
@@ -804,6 +809,7 @@ export function createVIPManager(): VIPManagerInstance {
     loadData,
     replaceAllFromCloud,
     getChangedUserIdsAndClear,
+    getChangedUserIdsSnapshot,
     hasPendingChanges,
     clearChangedUserIds,
     addNewUser,

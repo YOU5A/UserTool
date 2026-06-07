@@ -53,46 +53,68 @@ export function useSyncManager() {
     const currentUser = user;
     if (!client || !currentUser) return;
 
-    const changedIds = mgr.getChangedUserIdsAndClear();
+    // Snapshot without clearing: keep changedUserIds until push succeeds
+    const changedIds = mgr.getChangedUserIdsSnapshot();
     if (changedIds.length === 0) return;
 
     pushInProgressRef.current = true;
 
     if (import.meta.env.DEV) console.log("[useSyncManager] doPush, changedIds:", changedIds.length);
 
-    // Detect deleteAll scenario
-    if (changedIds.length > 10 && Object.keys(mgr.state.users).length === 0) {
-      await deleteAllUserData(client, currentUser.id);
-      pushInProgressRef.current = false;
-      return;
-    }
-
-    const toUpsert: import("@/types").User[] = [];
-    const toDelete: string[] = [];
-
-    for (const id of changedIds) {
-      const u = mgr.getUser(id);
-      if (u && !u.purged) {
-        toUpsert.push(u);
-      } else {
-        toDelete.push(id);
+    try {
+      // Detect deleteAll scenario
+      if (changedIds.length > 10 && Object.keys(mgr.state.users).length === 0) {
+        await deleteAllUserData(client, currentUser.id);
+        mgr.clearChangedUserIds();
+        pushInProgressRef.current = false;
+        return;
       }
-    }
 
-    if (toUpsert.length > 0) {
-      await pushUsersBatch(client, currentUser.id, toUpsert);
-    }
-    for (const id of toDelete) {
-      await deleteUserData(client, currentUser.id, id);
-    }
+      const toUpsert: import("@/types").User[] = [];
+      const toDelete: string[] = [];
 
-    pushInProgressRef.current = false;
+      for (const id of changedIds) {
+        const u = mgr.getUser(id);
+        if (u && !u.purged) {
+          toUpsert.push(u);
+        } else {
+          toDelete.push(id);
+        }
+      }
 
-    // After push completes, run deferred pull if one was requested
-    if (deferredPullRef.current) {
-      deferredPullRef.current = false;
-      if (import.meta.env.DEV) console.log("[useSyncManager] running deferred pull after push");
-      setTimeout(() => doPull(), 100);
+      let pushOk = true;
+      if (toUpsert.length > 0) {
+        pushOk = await pushUsersBatch(client, currentUser.id, toUpsert);
+      }
+      if (pushOk) {
+        for (const id of toDelete) {
+          await deleteUserData(client, currentUser.id, id);
+        }
+      }
+
+      if (!pushOk) {
+        // Push failed: keep changedUserIds for retry, schedule retry
+        if (import.meta.env.DEV) console.warn("[useSyncManager] doPush: upsert failed, will retry");
+        pushInProgressRef.current = false;
+        pushTimerRef.current = setTimeout(() => doPush(), 1000);
+        return;
+      }
+
+      // Only clear on success
+      mgr.clearChangedUserIds();
+      pushInProgressRef.current = false;
+
+      // After successful push, run deferred pull if one was requested
+      if (deferredPullRef.current) {
+        deferredPullRef.current = false;
+        if (import.meta.env.DEV) console.log("[useSyncManager] running deferred pull after push");
+        setTimeout(() => doPull(), 500);
+      }
+    } catch (e) {
+      // Network or unexpected error: keep changedUserIds, schedule retry
+      if (import.meta.env.DEV) console.error("[useSyncManager] doPush error:", e);
+      pushInProgressRef.current = false;
+      pushTimerRef.current = setTimeout(() => doPush(), 1000);
     }
   }, [user, mgr, doPull]);
 
