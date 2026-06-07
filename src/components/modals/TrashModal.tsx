@@ -21,12 +21,14 @@ export const TrashModal = memo(function TrashModal() {
   const handlePurge = (id: string) => {
     if (!confirm("确定要彻底删除该用户吗？该操作不可恢复。")) return;
     mgr.purgeTrashItem(id);
+    store.requestImmediatePush();
     rerender();
   };
 
   const handleClearAll = () => {
     if (!confirm("确定要清空回收站吗？该操作不可恢复。")) return;
     mgr.clearTrash();
+    store.requestImmediatePush();
     rerender();
   };
 

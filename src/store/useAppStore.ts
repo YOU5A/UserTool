@@ -30,6 +30,8 @@ interface AppState {
   // Data version (incremented on any data change to trigger re-renders)
   dataVersion: number;
   bumpDataVersion: () => void;
+  _requestImmediatePush: number;
+  requestImmediatePush: () => void;
 
   // Actions
   setSearchQuery: (q: string) => void;
@@ -70,6 +72,8 @@ export const useAppStore = create<AppState>((set) => ({
   },
 
   bumpDataVersion: () => set((s) => ({ dataVersion: s.dataVersion + 1 })),
+  _requestImmediatePush: 0,
+  requestImmediatePush: () => set((s) => ({ _requestImmediatePush: s._requestImmediatePush + 1 })),
 
   setSearchQuery: (q) => set({ searchQuery: q, currentPage: 1 }),
   setActiveFilter: (f) => set({ activeFilter: f, currentPage: 1 }),

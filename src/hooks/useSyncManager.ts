@@ -17,6 +17,7 @@ export function useSyncManager() {
   const mgr = getVIPManager();
 
   const pushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const deferredPullRef = useRef(false);
   const realtimeUnsubRef = useRef<(() => void) | null>(null);
 
   // ---- Pull from cloud ----
@@ -25,6 +26,15 @@ export function useSyncManager() {
     const client = getSupabaseClient();
     const currentUser = user;
     if (!client || !currentUser) return;
+
+    // Guard: skip pull if there are pending local changes to avoid overwriting unsynced data
+    if (mgr.hasPendingChanges()) {
+      deferredPullRef.current = true;
+      if (import.meta.env.DEV) console.log("[useSyncManager] doPull deferred: pending local changes");
+      return;
+    }
+
+    deferredPullRef.current = false;
     if (import.meta.env.DEV) console.log("[useSyncManager] doPull starting");
     const rows = await fetchAllUserData(client, currentUser.id);
     if (import.meta.env.DEV) console.log("[useSyncManager] fetchAllUserData done, rows:", rows.length);
@@ -68,7 +78,14 @@ export function useSyncManager() {
     for (const id of toDelete) {
       await deleteUserData(client, currentUser.id, id);
     }
-  }, [user, mgr]);
+
+    // After push completes, run deferred pull if one was requested
+    if (deferredPullRef.current) {
+      deferredPullRef.current = false;
+      if (import.meta.env.DEV) console.log("[useSyncManager] running deferred pull after push");
+      setTimeout(() => doPull(), 100);
+    }
+  }, [user, mgr, doPull]);
 
   // ---- Schedule push (debounced) ----
 
@@ -127,6 +144,23 @@ export function useSyncManager() {
     });
     return unsub;
   }, [isLoggedIn, user, schedulePush]);
+
+  // ---- requestImmediatePush -> push now without debounce ----
+
+  useEffect(() => {
+    const unsub = useAppStore.subscribe((state, prevState) => {
+      if (state._requestImmediatePush !== prevState._requestImmediatePush) {
+        if (isLoggedIn && user) {
+          if (pushTimerRef.current) {
+            clearTimeout(pushTimerRef.current);
+            pushTimerRef.current = null;
+          }
+          doPush();
+        }
+      }
+    });
+    return unsub;
+  }, [isLoggedIn, user, doPush]);
 
   // ---- Cleanup on unmount ----
 
